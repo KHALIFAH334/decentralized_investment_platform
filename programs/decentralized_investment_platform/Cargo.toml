@@ -1,7 +1,7 @@
 [package]
 name = "decentralized_investment_platform"
 version = "0.1.0"
-description = "Created with Anchor"
+description = "A decentralized investment platform for local businesses on Solana"
 edition = "2021"
 
 [lib]
@@ -17,5 +17,10 @@ no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 
 [dependencies]
-anchor-lang = "0.30.1"
-anchor-spl = { version = "0.30.1", features = ["token_2022"] }
+anchor-lang = { version = "1.1.2", features = ["init-if-needed"] }
+anchor-spl = { version = "1.1.2", features = [
+    "token_2022",
+    "token_2022_extensions",
+    "spl-token-interface",
+    "associated_token",
+] }
