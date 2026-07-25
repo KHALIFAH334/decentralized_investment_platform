@@ -122,9 +122,16 @@ describe("Decentralized Investment Platform", () => {
         systemProgram: SystemProgram.programId,
       })
       .signers([investor])
-      .rpc();
+      .rpc({ commitment: "confirmed" });
 
     console.log("    tx:", tx);
+
+    // Wait for confirmation before querying Token-2022 accounts
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
+    await provider.connection.confirmTransaction(
+      { signature: tx, ...latestBlockhash },
+      "confirmed"
+    );
 
     // Verify updated business state
     const state = await program.account.businessState.fetch(businessStatePda);
@@ -177,16 +184,23 @@ describe("Decentralized Investment Platform", () => {
         systemProgram: SystemProgram.programId,
       })
       .signers([investor])
-      .rpc();
+      .rpc({ commitment: "confirmed" });
 
     console.log("    tx:", tx);
+
+    // Wait for confirmation before querying Token-2022 accounts
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
+    await provider.connection.confirmTransaction(
+      { signature: tx, ...latestBlockhash },
+      "confirmed"
+    );
 
     // Verify business is now fully funded
     const state = await program.account.businessState.fetch(businessStatePda);
     expect(state.totalRaised.toNumber()).to.equal(FUNDING_GOAL.toNumber());
     expect(state.isFunded).to.equal(true);
 
-    // Investor should now hold all 1,000,000 tokens
+    // Investor should now hold all 1,000,000 tokens (400K from test 2 + 600K from test 3)
     const tokenAccount = await getAccount(
       provider.connection,
       investorAta,
