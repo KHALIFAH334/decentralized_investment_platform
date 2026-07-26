@@ -1,0 +1,12 @@
+Config File: /home/khalifah_334/.config/solana/cli/config.yml
+RPC URL: https://api.devnet.solana.com 
+WebSocket URL: wss://api.devnet.solana.com/ (computed)
+Keypair Path: /home/khalifah_334/.config/solana/id.json 
+Commitment: confirmed 
+=== BALANCE ===
+0 SOL
+=== AIRDROP ===
+Requesting airdrop of 2 SOL
+Error: airdrop request failed. This can happen when the rate limit is reached.
+=== BALANCE AFTER ===
+0 SOL

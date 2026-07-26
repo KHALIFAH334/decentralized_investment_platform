@@ -28,7 +28,7 @@ export function useBusinesses() {
     try {
       setLoading(true);
       const accounts = await program.account.businessState.all();
-      const data = accounts.map(acc => ({
+      const data = accounts.map((acc: any) => ({
         publicKey: acc.publicKey.toBase58(),
         owner: acc.account.owner.toBase58(),
         fundingGoal: acc.account.fundingGoal.toNumber(),

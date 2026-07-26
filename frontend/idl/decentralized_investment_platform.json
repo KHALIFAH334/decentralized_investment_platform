@@ -1,0 +1,633 @@
+{
+  "address": "5gEZHMQfMSKofq89gBkWPzwx7g1vy3d1pn8RJjRSkN4Z",
+  "metadata": {
+    "name": "decentralized_investment_platform",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "A decentralized investment platform for local businesses on Solana"
+  },
+  "instructions": [
+    {
+      "name": "close_business",
+      "docs": [
+        "Gracefully closes a business. Can only be called by the owner.",
+        "Marks the business as closed to prevent further investments."
+      ],
+      "discriminator": [
+        216,
+        38,
+        238,
+        233,
+        26,
+        13,
+        26,
+        15
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "distribute_dividends",
+      "docs": [
+        "Business owner distributes dividends (SOL) proportionally to equity token holders.",
+        "The owner deposits SOL, and a specific investor can claim their share",
+        "proportional to their token holdings relative to the total supply."
+      ],
+      "discriminator": [
+        185,
+        147,
+        6,
+        245,
+        80,
+        98,
+        186,
+        136
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "equity_mint"
+        },
+        {
+          "name": "investor",
+          "docs": [
+            "The investor receiving their dividend share."
+          ],
+          "writable": true
+        },
+        {
+          "name": "investor_token_account",
+          "docs": [
+            "The investor's token account — used to read their balance for proportional calculation."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "investor"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "equity_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "total_dividend_lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_business",
+      "docs": [
+        "Initializes a new business listing on the platform.",
+        "Creates a PDA to store business state and a Token-2022 equity mint",
+        "with TransferFeeConfig (protocol monetization) and PermanentDelegate (compliance)."
+      ],
+      "discriminator": [
+        224,
+        230,
+        190,
+        93,
+        141,
+        151,
+        35,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "equity_mint",
+          "docs": [
+            "The Token-2022 equity mint — initialized manually via CPI",
+            "with TransferFeeConfig + PermanentDelegate extensions."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "funding_goal",
+          "type": "u64"
+        },
+        {
+          "name": "equity_percentage",
+          "type": "u8"
+        },
+        {
+          "name": "total_equity_tokens",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "invest",
+      "docs": [
+        "Allows an investor to contribute SOL to a business.",
+        "SOL is held in the business PDA escrow.",
+        "Equity tokens are minted proportionally to the investor."
+      ],
+      "discriminator": [
+        13,
+        245,
+        180,
+        103,
+        254,
+        182,
+        121,
+        4
+      ],
+      "accounts": [
+        {
+          "name": "investor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_state.owner",
+                "account": "BusinessState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "equity_mint",
+          "writable": true
+        },
+        {
+          "name": "investor_token_account",
+          "docs": [
+            "The investor's associated token account for the equity mint.",
+            "Created with `init_if_needed` so new investors don't need a separate tx."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "investor"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "equity_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount_lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_funds",
+      "docs": [
+        "Business owner withdraws raised SOL after funding goal is met."
+      ],
+      "discriminator": [
+        241,
+        36,
+        29,
+        111,
+        208,
+        31,
+        104,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount_lamports",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BusinessState",
+      "discriminator": [
+        184,
+        233,
+        134,
+        44,
+        145,
+        249,
+        177,
+        115
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidFundingGoal",
+      "msg": "Funding goal must be greater than zero"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidEquityPercentage",
+      "msg": "Equity percentage must be between 1 and 100"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidTokenSupply",
+      "msg": "Total equity token supply must be greater than zero"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidInvestmentAmount",
+      "msg": "Investment amount must be greater than zero"
+    },
+    {
+      "code": 6004,
+      "name": "InvestmentTooSmall",
+      "msg": "Investment too small to mint any equity tokens"
+    },
+    {
+      "code": 6005,
+      "name": "BusinessClosed",
+      "msg": "Business is closed and no longer accepting investments"
+    },
+    {
+      "code": 6006,
+      "name": "AlreadyFunded",
+      "msg": "Business has already reached its funding goal"
+    },
+    {
+      "code": 6007,
+      "name": "NotYetFunded",
+      "msg": "Business has not yet reached its funding goal"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidWithdrawAmount",
+      "msg": "Withdrawal amount must be greater than zero"
+    },
+    {
+      "code": 6009,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds in escrow for withdrawal"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidDividendAmount",
+      "msg": "Dividend amount must be greater than zero"
+    },
+    {
+      "code": 6011,
+      "name": "NoTokensInCirculation",
+      "msg": "No tokens in circulation — cannot distribute dividends"
+    },
+    {
+      "code": 6012,
+      "name": "NoTokensHeld",
+      "msg": "Investor holds no equity tokens"
+    },
+    {
+      "code": 6013,
+      "name": "DividendTooSmall",
+      "msg": "Dividend share too small to distribute"
+    },
+    {
+      "code": 6014,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6015,
+      "name": "Unauthorized",
+      "msg": "You are not authorized to perform this action"
+    }
+  ],
+  "types": [
+    {
+      "name": "BusinessState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "docs": [
+              "The wallet address of the business owner"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "funding_goal",
+            "docs": [
+              "Funding goal in lamports"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "equity_percentage",
+            "docs": [
+              "Percentage of equity offered to investors (1-100)"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "total_raised",
+            "docs": [
+              "Total SOL raised so far in lamports"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_equity_tokens",
+            "docs": [
+              "Total equity tokens to be distributed"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "is_funded",
+            "docs": [
+              "Whether the funding goal has been reached"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "is_closed",
+            "docs": [
+              "Whether the business listing is closed"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "mint_key",
+            "docs": [
+              "The equity token mint address"
+            ],
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ]
+}

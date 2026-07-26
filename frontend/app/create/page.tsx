@@ -2,154 +2,272 @@
 
 import React, { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey, Keypair, SystemProgram } from '@solana/web3.js';
+import { useProgram } from '../../src/hooks/useProgram';
+import { PublicKey, SystemProgram, LAMPORTS_PER_SOL, Keypair } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { BN } from '@coral-xyz/anchor';
-import { useProgram } from '../../src/hooks/useProgram';
-import BusinessCard from '../../src/components/BusinessCard';
+import { supabase } from '../../src/lib/supabase';
+
+const PROGRAM_ID = new PublicKey('5gEZHMQfMSKofq89gBkWPzwx7g1vy3d1pn8RJjRSkN4Z');
 
 export default function CreateBusinessPage() {
-  const { program, PROGRAM_ID } = useProgram();
-  const { publicKey: walletPubkey } = useWallet();
-
+  const { program } = useProgram();
+  const { publicKey } = useWallet();
   const [fundingGoal, setFundingGoal] = useState('');
-  const [equityPct, setEquityPct] = useState('');
+  const [equityPercentage, setEquityPercentage] = useState('');
   const [totalTokens, setTotalTokens] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  
+  // Metadata state
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ type: string; message: string } | null>(null);
+
+  const showToast = (type: string, message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 6000);
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `public/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('business-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('business-images').getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading image: ', error);
+      showToast('error', 'Image upload failed. Continuing anyway...');
+      return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!program || !walletPubkey) {
-      setToast({ message: 'Please connect your wallet', type: 'error' });
+    if (!program || !publicKey) {
+      showToast('error', 'Connect your wallet first');
       return;
     }
 
+    const goal = parseFloat(fundingGoal);
+    const equity = parseInt(equityPercentage);
+    const tokens = parseFloat(totalTokens);
+
+    if (isNaN(goal) || goal <= 0) { showToast('error', 'Enter a valid funding goal'); return; }
+    if (isNaN(equity) || equity < 1 || equity > 100) { showToast('error', 'Equity must be between 1-100%'); return; }
+    if (isNaN(tokens) || tokens <= 0) { showToast('error', 'Enter a valid token supply'); return; }
+    if (!name.trim()) { showToast('error', 'Business name is required'); return; }
+
     try {
-      setCreating(true);
-      setToast(null);
-
-      const goalSOL = parseFloat(fundingGoal);
-      const pct = parseInt(equityPct);
-      const tokens = parseInt(totalTokens);
-
-      if (isNaN(goalSOL) || goalSOL <= 0) throw new Error('Invalid funding goal');
-      if (isNaN(pct) || pct < 1 || pct > 100) throw new Error('Equity percentage must be 1-100');
-      if (isNaN(tokens) || tokens <= 0) throw new Error('Invalid token amount');
-
-      const fundingGoalBN = new BN(goalSOL * 1e9);
-      const totalTokensBN = new BN(tokens);
+      setSubmitting(true);
       
+      // 1. Upload image if present
+      let imageUrl = '';
+      if (imageFile) {
+        const uploadedUrl = await uploadImage(imageFile);
+        if (uploadedUrl) imageUrl = uploadedUrl;
+      }
+
+      // 2. Blockchain Transaction
       const mintKeypair = Keypair.generate();
-      
-      const [pda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('business'), walletPubkey.toBuffer()],
+      const [businessPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('business'), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
-      const tx = await program.methods.initializeBusiness(fundingGoalBN, pct, totalTokensBN)
+      const fundingGoalBN = new BN(goal * LAMPORTS_PER_SOL);
+      const totalTokensBN = new BN(tokens * 1e6); // 6 decimals
+
+      const tx = await program.methods
+        .initializeBusiness(fundingGoalBN, equity, totalTokensBN)
         .accounts({
-          owner: walletPubkey,
-          businessState: pda,
+          owner: publicKey,
+          businessState: businessPda,
           equityMint: mintKeypair.publicKey,
           tokenProgram: TOKEN_2022_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
         .signers([mintKeypair])
-        .rpc();
+        .rpc({ commitment: 'confirmed' });
 
-      setToast({ message: `Business created successfully! Address: ${pda.toBase58()}`, type: 'success' });
-      setFundingGoal('');
-      setEquityPct('');
-      setTotalTokens('');
-    } catch (err: any) {
-      console.error(err);
-      setToast({ message: `Failed to create business: ${err.message}`, type: 'error' });
+      // 3. Save Metadata to Supabase
+      const { error: dbError } = await supabase.from('businesses').insert([
+        {
+          id: businessPda.toBase58(),
+          owner: publicKey.toBase58(),
+          name,
+          description,
+          category,
+          image_url: imageUrl,
+          website_url: websiteUrl,
+        }
+      ]);
+
+      if (dbError) {
+        console.error('Supabase error:', dbError);
+        showToast('warning', `Business created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed.`);
+      } else {
+        showToast('success', `Business created! TX: ${tx.slice(0, 16)}...`);
+      }
+
+      // Reset form
+      setFundingGoal(''); setEquityPercentage(''); setTotalTokens('');
+      setName(''); setDescription(''); setCategory(''); setWebsiteUrl(''); setImageFile(null);
+    } catch (e: any) {
+      showToast('error', e.message || 'Transaction failed');
     } finally {
-      setCreating(false);
+      setSubmitting(false);
     }
   };
 
-  const previewData = {
-    publicKey: 'preview_key',
-    owner: walletPubkey?.toBase58() || 'Connect Wallet',
-    fundingGoal: parseFloat(fundingGoal || '0') * 1e9,
-    totalRaised: 0,
-    equityPercentage: parseInt(equityPct || '0'),
-    totalEquityTokens: parseInt(totalTokens || '0'),
-    isFunded: false,
-    isClosed: false,
-    mintKey: 'New Mint Generated on Submit',
-    bump: 255,
-  };
+  // Live preview values
+  const previewGoal = parseFloat(fundingGoal) || 0;
+  const previewEquity = parseInt(equityPercentage) || 0;
+  const previewTokens = parseFloat(totalTokens) || 0;
+  const previewImageUrl = imageFile ? URL.createObjectURL(imageFile) : '';
 
   return (
-    <div className="container py-10 fade-in">
-      <div className="page-header mb-10">
-        <h1 className="text-4xl font-bold mb-4 gradient-text">List Your Business</h1>
-        <p className="text-gray-400">Raise funds transparently on Solana</p>
+    <div className="container fade-in">
+      <div className="page-header">
+        <h1>List Your Business</h1>
+        <p>Create a new investment opportunity on the Solana blockchain.</p>
+      </div>
+
+      <div className="detail-layout">
+        <div className="detail-main">
+          <div className="card">
+            <h3 style={{ marginBottom: 'var(--space-lg)', fontSize: '1.2rem', fontWeight: 700 }}>Listing Details</h3>
+
+            {!publicKey ? (
+              <p style={{ color: 'var(--text-secondary)' }}>Connect your wallet to create a business listing.</p>
+            ) : (
+              <form onSubmit={handleSubmit}>
+                <div style={{ marginBottom: 'var(--space-xl)', paddingBottom: 'var(--space-md)', borderBottom: '1px solid var(--border)' }}>
+                  <h4 style={{ marginBottom: 'var(--space-md)' }}>1. Profile (Off-chain)</h4>
+                  
+                  <div className="form-group">
+                    <label className="label">Business Name</label>
+                    <input className="input" type="text" placeholder="e.g. Mama's Bakery" value={name} onChange={(e) => setName(e.target.value)} required />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="label">Description</label>
+                    <textarea className="input" placeholder="Tell investors about your business..." value={description} onChange={(e) => setDescription(e.target.value)} style={{ minHeight: 100 }} required />
+                  </div>
+
+                  <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                    <div>
+                      <label className="label">Category</label>
+                      <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+                        <option value="">Select Category</option>
+                        <option value="Food & Beverage">Food & Beverage</option>
+                        <option value="Retail">Retail</option>
+                        <option value="Tech">Tech</option>
+                        <option value="Real Estate">Real Estate</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Website (Optional)</label>
+                      <input className="input" type="url" placeholder="https://" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="label">Cover Image</label>
+                    <input className="input" type="file" accept="image/*" onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) setImageFile(e.target.files[0]);
+                    }} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 'var(--space-xl)' }}>
+                  <h4 style={{ marginBottom: 'var(--space-md)' }}>2. Financials (On-chain)</h4>
+                  
+                  <div className="form-group">
+                    <label className="label">Funding Goal (SOL)</label>
+                    <input className="input" type="number" step="0.1" min="0" placeholder="e.g. 10" value={fundingGoal} onChange={(e) => setFundingGoal(e.target.value)} required />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="label">Equity Percentage (%)</label>
+                    <input className="input" type="number" min="1" max="100" placeholder="e.g. 20" value={equityPercentage} onChange={(e) => setEquityPercentage(e.target.value)} required />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="label">Total Equity Tokens (Supply)</label>
+                    <input className="input" type="number" min="1" placeholder="e.g. 1000000" value={totalTokens} onChange={(e) => setTotalTokens(e.target.value)} required />
+                  </div>
+                </div>
+
+                <button
+                  className="btn-primary"
+                  type="submit"
+                  style={{ width: '100%' }}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Creating Listing...' : 'Create Business'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
+        <div className="detail-sidebar">
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            {previewImageUrl ? (
+               <div style={{ width: '100%', height: '160px', backgroundImage: `url(${previewImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+            ) : (
+               <div style={{ width: '100%', height: '160px', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Image Preview</div>
+            )}
+            
+            <div style={{ padding: 'var(--space-lg)' }}>
+              <h3 style={{ marginBottom: 'var(--space-sm)', fontSize: '1.2rem', fontWeight: 700 }}>
+                {name || 'Business Name'}
+              </h3>
+              {category && <div style={{ fontSize: '0.8rem', color: 'var(--accent-secondary)', marginBottom: 'var(--space-md)' }}>{category}</div>}
+              
+              <div className="detail-stat">
+                <span className="detail-stat-label">Funding Goal</span>
+                <span className="detail-stat-value">{previewGoal.toFixed(2)} SOL</span>
+              </div>
+              <div className="detail-stat">
+                <span className="detail-stat-label">Equity Offered</span>
+                <span className="detail-stat-value">{previewEquity}%</span>
+              </div>
+              <div className="detail-stat">
+                <span className="detail-stat-label">Token Supply</span>
+                <span className="detail-stat-value">{previewTokens.toLocaleString()}</span>
+              </div>
+              <div style={{ marginTop: 'var(--space-lg)' }}>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: '0%' }}></div>
+                </div>
+                <div style={{ textAlign: 'center', marginTop: 'var(--space-sm)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                  0% funded
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {toast && (
-        <div className={`toast ${toast.type === 'success' ? 'toast-success' : 'toast-error'} mb-6 p-4 rounded`}>
+        <div className={`toast toast-${toast.type}`}>
           {toast.message}
         </div>
       )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div className="card p-8">
-          <form onSubmit={handleSubmit}>
-            <div className="form-group mb-6">
-              <label className="label block text-sm text-gray-400 mb-2">Funding Goal (SOL)</label>
-              <input 
-                type="number" 
-                step="0.01" 
-                className="input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg"
-                value={fundingGoal}
-                onChange={(e) => setFundingGoal(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div className="form-group mb-6">
-              <label className="label block text-sm text-gray-400 mb-2">Equity Percentage (1-100)</label>
-              <input 
-                type="number" 
-                min="1" 
-                max="100" 
-                className="input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg"
-                value={equityPct}
-                onChange={(e) => setEquityPct(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-group mb-8">
-              <label className="label block text-sm text-gray-400 mb-2">Total Equity Tokens</label>
-              <input 
-                type="number" 
-                className="input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg"
-                value={totalTokens}
-                onChange={(e) => setTotalTokens(e.target.value)}
-                required
-              />
-            </div>
-
-            <button 
-              type="submit" 
-              className="btn-primary w-full py-3"
-              disabled={creating || !walletPubkey}
-            >
-              {creating ? 'Creating...' : 'Launch Business'}
-            </button>
-          </form>
-        </div>
-
-        <div>
-          <h3 className="text-xl font-bold mb-6 text-gray-300">Live Preview</h3>
-          <BusinessCard business={previewData} />
-        </div>
-      </div>
     </div>
   );
 }

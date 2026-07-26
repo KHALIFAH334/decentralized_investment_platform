@@ -1,208 +1,293 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { BN } from '@coral-xyz/anchor';
 import { useProgram } from '../../../src/hooks/useProgram';
-import { BusinessData } from '../../../src/hooks/useBusinesses';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { BN } from '@coral-xyz/anchor';
+import Link from 'next/link';
+import { useBusinessMetadata } from '../../../src/hooks/useBusinessMetadata';
 
-export default function BusinessDetail() {
+interface BusinessDetail {
+  publicKey: string;
+  owner: string;
+  fundingGoal: number;
+  totalRaised: number;
+  equityPercentage: number;
+  totalEquityTokens: number;
+  isFunded: boolean;
+  isClosed: boolean;
+  mintKey: string;
+}
+
+function truncateAddress(addr: string): string {
+  return `${addr.slice(0, 6)}...${addr.slice(-6)}`;
+}
+
+export default function BusinessDetailPage() {
   const params = useParams();
-  const id = params.id as string;
-  const { program } = useProgram();
-  const { publicKey: walletPubkey } = useWallet();
-
-  const [business, setBusiness] = useState<BusinessData | null>(null);
+  const id = params?.id as string;
+  const { program, wallet } = useProgram();
+  const { connection } = useConnection();
+  const [business, setBusiness] = useState<BusinessDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [amount, setAmount] = useState('');
-  const [investing, setInvesting] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [investAmount, setInvestAmount] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ type: string; message: string } | null>(null);
+  
+  const { data: metadata, loading: metaLoading } = useBusinessMetadata(id);
 
-  useEffect(() => {
-    async function fetchBusiness() {
-      if (!program) return;
-      try {
-        const accounts = await program.account.businessState.all();
-        const found = accounts.find(a => a.publicKey.toBase58() === id);
-        if (found) {
-          setBusiness({
-            publicKey: found.publicKey.toBase58(),
-            owner: found.account.owner.toBase58(),
-            fundingGoal: found.account.fundingGoal.toNumber(),
-            totalRaised: found.account.totalRaised.toNumber(),
-            equityPercentage: found.account.equityPercentage,
-            totalEquityTokens: found.account.totalEquityTokens.toNumber(),
-            isFunded: found.account.isFunded,
-            isClosed: found.account.isClosed,
-            mintKey: found.account.mintKey.toBase58(),
-            bump: found.account.bump,
-          });
-        }
-      } catch (err: any) {
-        console.error(err);
-        setToast({ message: 'Failed to load business', type: 'error' });
-      } finally {
-        setLoading(false);
-      }
+  const fetchBusiness = useCallback(async () => {
+    if (!program || !id) return;
+    try {
+      setLoading(true);
+      const pubkey = new PublicKey(id);
+      const account = await program.account.businessState.fetch(pubkey);
+      setBusiness({
+        publicKey: id,
+        owner: (account as any).owner.toBase58(),
+        fundingGoal: (account as any).fundingGoal.toNumber(),
+        totalRaised: (account as any).totalRaised.toNumber(),
+        equityPercentage: (account as any).equityPercentage,
+        totalEquityTokens: (account as any).totalEquityTokens.toNumber(),
+        isFunded: (account as any).isFunded,
+        isClosed: (account as any).isClosed,
+        mintKey: (account as any).mintKey.toBase58(),
+      });
+    } catch (e: any) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
-    fetchBusiness();
   }, [program, id]);
 
-  const handleInvest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!program || !walletPubkey || !business) {
-      setToast({ message: 'Connect wallet to invest', type: 'error' });
+  useEffect(() => { fetchBusiness(); }, [fetchBusiness]);
+
+  const showToast = (type: string, message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 5000);
+  };
+
+  const handleInvest = async () => {
+    if (!program || !wallet || !business) return;
+    const amountSol = parseFloat(investAmount);
+    if (isNaN(amountSol) || amountSol <= 0) {
+      showToast('error', 'Enter a valid SOL amount');
       return;
     }
-
-    const solAmount = parseFloat(amount);
-    if (isNaN(solAmount) || solAmount <= 0) {
-      setToast({ message: 'Enter a valid amount', type: 'error' });
-      return;
-    }
-
-    setInvesting(true);
-    setToast(null);
 
     try {
-      const lamports = new BN(solAmount * 1e9);
-      const mintPubKey = new PublicKey(business.mintKey);
-      const investorTokenAccount = getAssociatedTokenAddressSync(
-        mintPubKey,
-        walletPubkey,
+      setSubmitting(true);
+      const amountLamports = new BN(amountSol * LAMPORTS_PER_SOL);
+      const businessPubkey = new PublicKey(business.publicKey);
+      const mintPubkey = new PublicKey(business.mintKey);
+
+      const investorAta = getAssociatedTokenAddressSync(
+        mintPubkey,
+        wallet.publicKey,
         false,
         TOKEN_2022_PROGRAM_ID
       );
 
-      const tx = await program.methods.invest(lamports)
+      const tx = await program.methods
+        .invest(amountLamports)
         .accounts({
-          investor: walletPubkey,
-          businessState: new PublicKey(business.publicKey),
-          equityMint: mintPubKey,
-          investorTokenAccount: investorTokenAccount,
+          investor: wallet.publicKey,
+          businessState: businessPubkey,
+          equityMint: mintPubkey,
+          investorTokenAccount: investorAta,
           tokenProgram: TOKEN_2022_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .rpc();
+        .rpc({ commitment: 'confirmed' });
 
-      setToast({ message: `Investment successful! TX: ${tx}`, type: 'success' });
-      setAmount('');
-      // Optimistic update
-      setBusiness(prev => prev ? { ...prev, totalRaised: prev.totalRaised + solAmount * 1e9 } : null);
-    } catch (err: any) {
-      console.error(err);
-      setToast({ message: `Investment failed: ${err.message}`, type: 'error' });
+      showToast('success', `Investment successful! TX: ${tx.slice(0, 12)}...`);
+      setInvestAmount('');
+      await fetchBusiness();
+    } catch (e: any) {
+      showToast('error', e.message || 'Transaction failed');
     } finally {
-      setInvesting(false);
+      setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return <div className="container py-20 text-center">Loading...</div>;
+  const tokensPreview = (() => {
+    if (!business || !investAmount) return 0;
+    const amountSol = parseFloat(investAmount);
+    if (isNaN(amountSol) || amountSol <= 0) return 0;
+    const amountLamports = amountSol * LAMPORTS_PER_SOL;
+    return (amountLamports / business.fundingGoal) * (business.totalEquityTokens / 1e6);
+  })();
+
+  if (loading || metaLoading) {
+    return (
+      <div className="container">
+        <div style={{ paddingTop: 'var(--space-xl)' }}>
+          <div className="skeleton" style={{ height: 40, width: 300, marginBottom: 'var(--space-lg)' }}></div>
+          <div className="skeleton" style={{ height: 400 }}></div>
+        </div>
+      </div>
+    );
   }
 
   if (!business) {
-    return <div className="container py-20 text-center">Business not found</div>;
+    return (
+      <div className="container">
+        <div className="empty-state">
+          <h3>Business not found</h3>
+          <p>This business listing does not exist.</p>
+          <Link href="/businesses" className="btn-primary">Browse Businesses</Link>
+        </div>
+      </div>
+    );
   }
 
-  const fundingGoalSOL = business.fundingGoal / 1e9;
-  const totalRaisedSOL = business.totalRaised / 1e9;
-  const progressPercent = Math.min((business.totalRaised / business.fundingGoal) * 100, 100);
+  const goalSol = business.fundingGoal / 1e9;
+  const raisedSol = business.totalRaised / 1e9;
+  const progress = business.fundingGoal > 0 ? Math.min((business.totalRaised / business.fundingGoal) * 100, 100) : 0;
+  const canInvest = !business.isFunded && !business.isClosed && !!wallet;
 
-  let statusBadgeClass = 'badge-funding';
-  let statusText = 'Funding';
-  if (business.isClosed) {
-    statusBadgeClass = 'badge-closed';
-    statusText = 'Closed';
-  } else if (business.isFunded) {
-    statusBadgeClass = 'badge-funded';
-    statusText = 'Funded';
-  }
+  const statusBadge = business.isClosed
+    ? { className: 'badge badge-closed', label: 'Closed' }
+    : business.isFunded
+    ? { className: 'badge badge-funded', label: 'Funded' }
+    : { className: 'badge badge-funding', label: 'Funding' };
 
   return (
-    <div className="container py-10 fade-in">
-      {toast && (
-        <div className={`toast ${toast.type === 'success' ? 'toast-success' : 'toast-error'} mb-6 p-4 rounded`}>
-          {toast.message}
-        </div>
-      )}
+    <div className="container fade-in">
+      <div style={{ paddingTop: 'var(--space-lg)', marginBottom: 'var(--space-md)' }}>
+        <Link href="/businesses" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          ← Back to listings
+        </Link>
+      </div>
 
-      <div className="detail-layout grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="detail-main lg:col-span-2">
-          <div className="card p-8">
-            <div className="flex justify-between items-start mb-6">
+      <div className="detail-layout">
+        <div className="detail-main">
+          {metadata?.image_url && (
+            <div style={{ width: '100%', height: '300px', backgroundImage: `url(${metadata.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-xl)' }}></div>
+          )}
+          <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
               <div>
-                <h1 className="text-3xl font-bold mb-2">Business Details</h1>
-                <p className="text-gray-400 font-mono text-sm break-all">{business.owner}</p>
+                <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>{metadata?.name || 'Business Details'}</h1>
+                {metadata?.category && <div style={{ color: 'var(--accent-secondary)', fontSize: '0.9rem', marginTop: 4 }}>{metadata.category}</div>}
               </div>
-              <span className={`badge ${statusBadgeClass} text-lg px-4 py-1`}>{statusText}</span>
-            </div>
-
-            <div className="mb-8">
-              <div className="flex justify-between text-lg mb-2">
-                <span>{totalRaisedSOL.toFixed(2)} SOL raised</span>
-                <span>{progressPercent.toFixed(1)}% of {fundingGoalSOL} SOL</span>
-              </div>
-              <div className="progress-bar h-4">
-                <div className="progress-fill h-full" style={{ width: `${progressPercent}%` }}></div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6 mb-8">
-              <div className="detail-stat p-4 bg-gray-800 rounded-lg">
-                <div className="detail-stat-label text-sm text-gray-400 mb-1">Equity Offered</div>
-                <div className="detail-stat-value text-2xl font-bold">{business.equityPercentage}%</div>
-              </div>
-              <div className="detail-stat p-4 bg-gray-800 rounded-lg">
-                <div className="detail-stat-label text-sm text-gray-400 mb-1">Total Tokens</div>
-                <div className="detail-stat-value text-2xl font-bold">{business.totalEquityTokens.toLocaleString()}</div>
-              </div>
+              <span className={statusBadge.className}>{statusBadge.label}</span>
             </div>
             
-            <div className="text-sm text-gray-500 font-mono break-all">
-              <strong>Mint Address:</strong> {business.mintKey}
+            {metadata?.description && (
+              <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 'var(--space-xl)' }}>
+                {metadata.description.split('\n').map((line, i) => (
+                  <p key={i} style={{ marginBottom: line ? '0.5rem' : 0 }}>{line}</p>
+                ))}
+              </div>
+            )}
+            
+            {metadata?.website_url && (
+              <div style={{ marginBottom: 'var(--space-xl)' }}>
+                <a href={metadata.website_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  Visit Website ↗
+                </a>
+              </div>
+            )}
+
+            <div style={{ marginBottom: 'var(--space-lg)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Funding Progress</span>
+                <span style={{ fontWeight: 600 }}>{progress.toFixed(1)}%</span>
+              </div>
+              <div className="progress-bar" style={{ height: 12 }}>
+                <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-xs)', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                <span>{raisedSol.toFixed(2)} SOL raised</span>
+                <span>{goalSol.toFixed(2)} SOL goal</span>
+              </div>
+            </div>
+
+            <div className="detail-stat">
+              <span className="detail-stat-label">Owner</span>
+              <span className="detail-stat-value">{truncateAddress(business.owner)}</span>
+            </div>
+            <div className="detail-stat">
+              <span className="detail-stat-label">Equity Offered</span>
+              <span className="detail-stat-value">{business.equityPercentage}%</span>
+            </div>
+            <div className="detail-stat">
+              <span className="detail-stat-label">Total Equity Tokens</span>
+              <span className="detail-stat-value">{(business.totalEquityTokens / 1e6).toLocaleString()}</span>
+            </div>
+            <div className="detail-stat">
+              <span className="detail-stat-label">Mint Address</span>
+              <span className="detail-stat-value">{truncateAddress(business.mintKey)}</span>
             </div>
           </div>
         </div>
 
         <div className="detail-sidebar">
-          <div className="card p-6">
-            <h3 className="text-xl font-bold mb-6">Invest Now</h3>
-            <form onSubmit={handleInvest}>
-              <div className="form-group mb-4">
-                <label className="label block text-sm text-gray-400 mb-2">Amount (SOL)</label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  className="input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  disabled={investing || business.isClosed}
-                />
-              </div>
-              
-              {amount && !isNaN(parseFloat(amount)) && (
-                <div className="mb-6 text-sm text-gray-400">
-                  Estimated tokens to receive: ~{((parseFloat(amount) / fundingGoalSOL) * business.totalEquityTokens).toFixed(0)}
-                </div>
-              )}
+          <div className="card">
+            <h3 style={{ marginBottom: 'var(--space-lg)', fontSize: '1.2rem', fontWeight: 700 }}>Invest</h3>
 
-              <button 
-                type="submit" 
-                className="btn-primary w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={investing || business.isClosed || !amount}
-              >
-                {investing ? 'Processing...' : 'Invest SOL'}
-              </button>
-            </form>
+            {!wallet ? (
+              <p style={{ color: 'var(--text-secondary)' }}>Connect your wallet to invest.</p>
+            ) : !canInvest ? (
+              <p style={{ color: 'var(--text-secondary)' }}>
+                {business.isClosed ? 'This business is closed.' : 'This business is fully funded.'}
+              </p>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label className="label">Amount (SOL)</label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={investAmount}
+                    onChange={(e) => setInvestAmount(e.target.value)}
+                  />
+                </div>
+
+                {tokensPreview > 0 && (
+                  <div style={{
+                    padding: 'var(--space-md)',
+                    background: 'var(--bg-surface)',
+                    borderRadius: 'var(--radius-md)',
+                    marginBottom: 'var(--space-lg)',
+                    border: '1px solid var(--border)'
+                  }}>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 4 }}>
+                      You will receive
+                    </div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 700 }}>
+                      <span className="gradient-text">{tokensPreview.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span> tokens
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  className="btn-primary"
+                  style={{ width: '100%' }}
+                  onClick={handleInvest}
+                  disabled={submitting || !investAmount}
+                >
+                  {submitting ? 'Processing...' : 'Invest Now'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

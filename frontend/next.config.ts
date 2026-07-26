@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Use empty turbopack config since Next.js 16 defaults to Turbopack
+  turbopack: {},
+  // Webpack fallback for when building with --webpack flag
   webpack: (config) => {
-    // Required for @solana/web3.js and @coral-xyz/anchor in browser
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,

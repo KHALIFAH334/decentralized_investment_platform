@@ -1,0 +1,20 @@
+Warning: 'anchor deploy' is deprecated. Use 'anchor program deploy' instead.
+Deploying cluster: https://api.devnet.solana.com
+Upgrade authority: /home/khalifah_334/.config/solana/id.json
+Deploying program "decentralized_investment_platform"...
+Program path: /home/khalifah_334/decentralized_investment_platform/target/deploy/decentralized_investment_platform.so...
+Attempt 1 failed: Account allocation failed: RPC response error -32002: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit.; 
+
+Deploy attempt 2 of 3
+Attempt 2 failed: Account allocation failed: RPC response error -32002: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit.; 
+
+Deploy attempt 3 of 3
+Attempt 3 failed: Account allocation failed: RPC response error -32002: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit.; 
+
+Deploy failed after 3 attempts.
+Partial buffer: 8SdQTFLcKSx4ENQk951fcRSQ41haNVGjeDUs5c9DD12Z
+Buffer keypair: /home/khalifah_334/decentralized_investment_platform/target/deploy/decentralized_investment_platform-upgrade-buffer.json
+Resume:   re-run the same command (buffer auto-loaded)
+          or anchor program deploy ... --buffer 8SdQTFLcKSx4ENQk951fcRSQ41haNVGjeDUs5c9DD12Z
+Reclaim:  solana program close 8SdQTFLcKSx4ENQk951fcRSQ41haNVGjeDUs5c9DD12Z
+Error: Account allocation failed: RPC response error -32002: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit.; 
