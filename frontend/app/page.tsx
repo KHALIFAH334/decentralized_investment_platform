@@ -10,7 +10,7 @@ export default function LandingPage() {
     <div className="container">
       <div className="hero fade-in">
         <h1>Institutional On-Chain<br />Equity Raising.</h1>
-        <p>Anchor Capital brings fractional equity investing to Solana. Fund local businesses, receive tokenized equity, earn dividends — all on-chain.</p>
+        <p>Anchor Capital brings fractional equity investing to Solana. Fund local businesses, receive tokenized equity, earn dividends all on-chain.</p>
         <div className="hero-buttons">
           <Link href="/businesses" className="btn-primary">Browse Marketplace</Link>
           <Link href="/create" className="btn-secondary">List Your Business</Link>
