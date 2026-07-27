@@ -16,7 +16,7 @@ export default function CreateBusinessPage() {
   const [fundingGoal, setFundingGoal] = useState('');
   const [equityPercentage, setEquityPercentage] = useState('');
   const [totalTokens, setTotalTokens] = useState('');
-  
+
   // Metadata state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -67,11 +67,11 @@ export default function CreateBusinessPage() {
     if (isNaN(goal) || goal <= 0) { showToast('error', 'Enter a valid funding goal'); return; }
     if (isNaN(equity) || equity < 1 || equity > 100) { showToast('error', 'Equity must be between 1-100%'); return; }
     if (isNaN(tokens) || tokens <= 0) { showToast('error', 'Enter a valid token supply'); return; }
-    if (!name.trim()) { showToast('error', 'Business name is required'); return; }
+    if (!name.trim()) { showToast('error', 'Entity name is required'); return; }
 
     try {
       setSubmitting(true);
-      
+
       // 1. Upload image if present
       let imageUrl = '';
       if (imageFile) {
@@ -116,9 +116,9 @@ export default function CreateBusinessPage() {
 
       if (dbError) {
         console.error('Supabase error:', dbError);
-        showToast('warning', `Business created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed.`);
+        showToast('warning', `Entity created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed.`);
       } else {
-        showToast('success', `Business created! TX: ${tx.slice(0, 16)}...`);
+        showToast('success', `Entity created successfully! TX: ${tx.slice(0, 16)}...`);
       }
 
       // Reset form
@@ -140,27 +140,29 @@ export default function CreateBusinessPage() {
   return (
     <div className="container fade-in">
       <div className="page-header">
-        <h1>List Your Business</h1>
-        <p>Create a new investment opportunity on the Solana blockchain.</p>
+        <h1>Create Listing</h1>
+        <p>Launch a new equity offering on the Solana blockchain.</p>
       </div>
 
       <div className="detail-layout">
-        <div className="detail-main">
+        <div>
           <div className="card">
-            <h3 style={{ marginBottom: 'var(--space-lg)', fontSize: '1.2rem', fontWeight: 700 }}>Listing Details</h3>
+            <h3 style={{ marginBottom: 'var(--space-lg)', fontSize: '1rem', fontWeight: 700 }}>Listing Details</h3>
 
             {!publicKey ? (
-              <p style={{ color: 'var(--text-secondary)' }}>Connect your wallet to create a business listing.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Connect your wallet to create an entity listing.</p>
             ) : (
               <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: 'var(--space-xl)', paddingBottom: 'var(--space-md)', borderBottom: '1px solid var(--border)' }}>
-                  <h4 style={{ marginBottom: 'var(--space-md)' }}>1. Profile (Off-chain)</h4>
-                  
+                <div style={{ marginBottom: 'var(--space-xl)', paddingBottom: 'var(--space-md)', borderBottom: '1px solid var(--border-grid)' }}>
+                  <h4 style={{ marginBottom: 'var(--space-md)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
+                    1. Entity Profile (Off-chain)
+                  </h4>
+
                   <div className="form-group">
-                    <label className="label">Business Name</label>
+                    <label className="label">Entity Name</label>
                     <input className="input" type="text" placeholder="e.g. Mama's Bakery" value={name} onChange={(e) => setName(e.target.value)} required />
                   </div>
-                  
+
                   <div className="form-group">
                     <label className="label">Description</label>
                     <textarea className="input" placeholder="Tell investors about your business..." value={description} onChange={(e) => setDescription(e.target.value)} style={{ minHeight: 100 }} required />
@@ -168,9 +170,9 @@ export default function CreateBusinessPage() {
 
                   <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
                     <div>
-                      <label className="label">Category</label>
+                      <label className="label">Sector</label>
                       <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                        <option value="">Select Category</option>
+                        <option value="">Select Sector</option>
                         <option value="Food & Beverage">Food & Beverage</option>
                         <option value="Retail">Retail</option>
                         <option value="Tech">Tech</option>
@@ -193,21 +195,23 @@ export default function CreateBusinessPage() {
                 </div>
 
                 <div style={{ marginBottom: 'var(--space-xl)' }}>
-                  <h4 style={{ marginBottom: 'var(--space-md)' }}>2. Financials (On-chain)</h4>
-                  
+                  <h4 style={{ marginBottom: 'var(--space-md)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
+                    2. Financials (On-chain)
+                  </h4>
+
                   <div className="form-group">
                     <label className="label">Funding Goal (SOL)</label>
-                    <input className="input" type="number" step="0.1" min="0" placeholder="e.g. 10" value={fundingGoal} onChange={(e) => setFundingGoal(e.target.value)} required />
+                    <input className="input mono" type="number" step="0.1" min="0" placeholder="e.g. 10" value={fundingGoal} onChange={(e) => setFundingGoal(e.target.value)} required />
                   </div>
 
                   <div className="form-group">
                     <label className="label">Equity Percentage (%)</label>
-                    <input className="input" type="number" min="1" max="100" placeholder="e.g. 20" value={equityPercentage} onChange={(e) => setEquityPercentage(e.target.value)} required />
+                    <input className="input mono" type="number" min="1" max="100" placeholder="e.g. 20" value={equityPercentage} onChange={(e) => setEquityPercentage(e.target.value)} required />
                   </div>
 
                   <div className="form-group">
                     <label className="label">Total Equity Tokens (Supply)</label>
-                    <input className="input" type="number" min="1" placeholder="e.g. 1000000" value={totalTokens} onChange={(e) => setTotalTokens(e.target.value)} required />
+                    <input className="input mono" type="number" min="1" placeholder="e.g. 1000000" value={totalTokens} onChange={(e) => setTotalTokens(e.target.value)} required />
                   </div>
                 </div>
 
@@ -217,7 +221,7 @@ export default function CreateBusinessPage() {
                   style={{ width: '100%' }}
                   disabled={submitting}
                 >
-                  {submitting ? 'Creating Listing...' : 'Create Business'}
+                  {submitting ? 'Creating Listing...' : 'Create Entity'}
                 </button>
               </form>
             )}
@@ -227,17 +231,17 @@ export default function CreateBusinessPage() {
         <div className="detail-sidebar">
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             {previewImageUrl ? (
-               <div style={{ width: '100%', height: '160px', backgroundImage: `url(${previewImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+              <div style={{ width: '100%', height: '160px', backgroundImage: `url(${previewImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
             ) : (
-               <div style={{ width: '100%', height: '160px', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Image Preview</div>
+              <div style={{ width: '100%', height: '160px', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Image Preview</div>
             )}
-            
+
             <div style={{ padding: 'var(--space-lg)' }}>
-              <h3 style={{ marginBottom: 'var(--space-sm)', fontSize: '1.2rem', fontWeight: 700 }}>
-                {name || 'Business Name'}
+              <h3 style={{ marginBottom: 'var(--space-xs)', fontSize: '1rem', fontWeight: 700 }}>
+                {name || 'Entity Name'}
               </h3>
-              {category && <div style={{ fontSize: '0.8rem', color: 'var(--accent-secondary)', marginBottom: 'var(--space-md)' }}>{category}</div>}
-              
+              {category && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)', fontWeight: 500 }}>{category}</div>}
+
               <div className="detail-stat">
                 <span className="detail-stat-label">Funding Goal</span>
                 <span className="detail-stat-value">{previewGoal.toFixed(2)} SOL</span>
@@ -246,15 +250,16 @@ export default function CreateBusinessPage() {
                 <span className="detail-stat-label">Equity Offered</span>
                 <span className="detail-stat-value">{previewEquity}%</span>
               </div>
-              <div className="detail-stat">
+              <div className="detail-stat" style={{ borderBottom: 'none' }}>
                 <span className="detail-stat-label">Token Supply</span>
                 <span className="detail-stat-value">{previewTokens.toLocaleString()}</span>
               </div>
+
               <div style={{ marginTop: 'var(--space-lg)' }}>
                 <div className="progress-bar">
                   <div className="progress-fill" style={{ width: '0%' }}></div>
                 </div>
-                <div style={{ textAlign: 'center', marginTop: 'var(--space-sm)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                <div style={{ textAlign: 'center', marginTop: 'var(--space-sm)', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                   0% funded
                 </div>
               </div>

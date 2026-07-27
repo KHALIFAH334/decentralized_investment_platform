@@ -8,7 +8,7 @@ import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { BN } from '@coral-xyz/anchor';
 import { useTokenPortfolio } from '../../src/hooks/useTokenPortfolio';
-import { useAllBusinessMetadata, BusinessMetadata } from '../../src/hooks/useBusinessMetadata';
+import { useAllBusinessMetadata } from '../../src/hooks/useBusinessMetadata';
 
 function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-6)}`;
@@ -29,9 +29,9 @@ export default function DashboardPage() {
   if (!publicKey) {
     return (
       <div className="container">
-        <div className="empty-state" style={{ marginTop: 'var(--space-3xl)' }}>
+        <div className="empty-state">
           <h3>Connect Your Wallet</h3>
-          <p>Connect your Solana wallet to view your dashboard.</p>
+          <p>Connect your Solana wallet to view your cap table.</p>
         </div>
       </div>
     );
@@ -42,8 +42,8 @@ export default function DashboardPage() {
   return (
     <div className="container fade-in">
       <div className="page-header">
-        <h1>Dashboard</h1>
-        <p>Manage your businesses and investments.</p>
+        <h1>Cap Tables</h1>
+        <p>Manage your entities and investment portfolio.</p>
       </div>
 
       <div className="tabs">
@@ -51,7 +51,7 @@ export default function DashboardPage() {
           className={`tab ${activeTab === 'businesses' ? 'active' : ''}`}
           onClick={() => setActiveTab('businesses')}
         >
-          My Businesses ({myBusinesses.length})
+          My Entities ({myBusinesses.length})
         </button>
         <button
           className={`tab ${activeTab === 'investments' ? 'active' : ''}`}
@@ -100,14 +100,13 @@ function MyInvestmentsTab() {
     );
   }
 
-  // Filter token holdings to only include those that match a business on our platform
   const investedBusinesses = businesses.filter(biz => holdings[biz.mintKey]);
 
   if (investedBusinesses.length === 0) {
     return (
       <div className="empty-state">
         <h3>No Investments Found</h3>
-        <p>You haven't invested in any businesses on the platform yet.</p>
+        <p>You haven&apos;t invested in any entities on the platform yet.</p>
       </div>
     );
   }
@@ -123,26 +122,26 @@ function MyInvestmentsTab() {
         return (
           <div key={biz.publicKey} className="card" style={{ padding: 0, overflow: 'hidden' }}>
             {meta?.image_url ? (
-              <div style={{ width: '100%', height: '140px', backgroundImage: `url(${meta.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+              <div style={{ width: '100%', height: '120px', backgroundImage: `url(${meta.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
             ) : (
-              <div style={{ width: '100%', height: '140px', background: 'var(--bg-surface)' }}></div>
+              <div style={{ width: '100%', height: '120px', background: 'var(--bg-surface)' }}></div>
             )}
             <div style={{ padding: 'var(--space-lg)' }}>
-              <h3 style={{ margin: '0 0 var(--space-xs)', fontSize: '1.2rem' }}>{meta?.name || 'Unnamed Business'}</h3>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: 'var(--space-lg)' }}>
+              <h3 style={{ margin: '0 0 var(--space-xs)', fontSize: '1rem', fontWeight: 700 }}>{meta?.name || 'Unnamed Entity'}</h3>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 'var(--space-lg)', fontWeight: 500 }}>
                 {meta?.category || 'Uncategorized'}
               </div>
-              
-              <div style={{ background: 'var(--bg-surface)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', marginBottom: 'var(--space-md)' }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 4 }}>Your Balance</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700 }} className="gradient-text">
-                  <span className="gradient-text">{holding.balance.toLocaleString()}</span> tokens
+
+              <div style={{ background: 'var(--bg-surface)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-grid)', marginBottom: 'var(--space-md)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Your Balance</div>
+                <div className="mono" style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  {holding.balance.toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>tokens</span>
                 </div>
               </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Ownership Stake</span>
-                <span style={{ fontWeight: 600 }}>{ownershipPercentage}%</span>
+
+              <div className="detail-stat" style={{ borderBottom: 'none', fontSize: '0.85rem' }}>
+                <span className="detail-stat-label">Ownership Stake</span>
+                <span className="detail-stat-value">{ownershipPercentage}%</span>
               </div>
             </div>
           </div>
@@ -185,8 +184,8 @@ function MyBusinessesTab({
   if (businesses.length === 0) {
     return (
       <div className="empty-state">
-        <h3>No Businesses</h3>
-        <p>You haven&apos;t created any business listings yet.</p>
+        <h3>No Entities</h3>
+        <p>You haven&apos;t created any entity listings yet.</p>
       </div>
     );
   }
@@ -273,7 +272,7 @@ function MyBusinessesTab({
         })
         .rpc({ commitment: 'confirmed' });
 
-      showToast('success', 'Business closed!');
+      showToast('success', 'Entity closed!');
       refresh();
     } catch (e: any) {
       showToast('error', e.message || 'Close failed');
@@ -298,18 +297,16 @@ function MyBusinessesTab({
         return (
           <div key={biz.publicKey} className="card" style={{ marginBottom: 'var(--space-lg)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-              <div>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  PDA: {truncateAddress(biz.publicKey)}
-                </span>
-              </div>
+              <span className="mono" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                PDA: {truncateAddress(biz.publicKey)}
+              </span>
               <span className={statusBadge.className}>{statusBadge.label}</span>
             </div>
 
             <div style={{ marginBottom: 'var(--space-md)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{raisedSol.toFixed(2)} / {goalSol.toFixed(2)} SOL</span>
-                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{progress.toFixed(1)}%</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.85rem' }}>
+                <span className="mono" style={{ color: 'var(--text-secondary)' }}>{raisedSol.toFixed(2)} / {goalSol.toFixed(2)} SOL</span>
+                <span className="mono" style={{ fontWeight: 600 }}>{progress.toFixed(1)}%</span>
               </div>
               <div className="progress-bar">
                 <div className="progress-fill" style={{ width: `${Math.min(progress, 100)}%` }}></div>
@@ -323,7 +320,7 @@ function MyBusinessesTab({
                 <div className="action-row">
                   <div className="form-group">
                     <input
-                      className="input"
+                      className="input mono"
                       type="number"
                       step="0.01"
                       placeholder="SOL amount"
@@ -348,7 +345,7 @@ function MyBusinessesTab({
                 <h3>Distribute Dividends</h3>
                 <div className="form-group">
                   <input
-                    className="input"
+                    className="input mono"
                     type="text"
                     placeholder="Investor wallet address"
                     value={dividendInvestors[biz.publicKey] || ''}
@@ -358,7 +355,7 @@ function MyBusinessesTab({
                 <div className="action-row">
                   <div className="form-group">
                     <input
-                      className="input"
+                      className="input mono"
                       type="number"
                       step="0.01"
                       placeholder="SOL amount"
@@ -386,7 +383,7 @@ function MyBusinessesTab({
                   disabled={actionLoading === `close-${biz.publicKey}`}
                   style={{ color: 'var(--error)', borderColor: 'var(--error)' }}
                 >
-                  {actionLoading === `close-${biz.publicKey}` ? 'Closing...' : 'Close Business'}
+                  {actionLoading === `close-${biz.publicKey}` ? 'Closing...' : 'Close Entity'}
                 </button>
               </div>
             )}

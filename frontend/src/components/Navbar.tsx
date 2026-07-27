@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { Logo } from './Logo';
 
 const WalletMultiButton = dynamic(
   () => import('@solana/wallet-adapter-react-ui').then((mod) => mod.WalletMultiButton),
@@ -12,37 +13,68 @@ const WalletMultiButton = dynamic(
 
 export function Navbar() {
   const pathname = usePathname();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const toggleMobileMenu = () => {
+    setIsMobileOpen((prev) => !prev);
+  };
+
+  const navLinks = [
+    { name: 'Marketplace', path: '/businesses' },
+    { name: 'Cap Tables', path: '/dashboard' },
+    { name: 'Create', path: '/create' },
+    { name: 'Developer', path: '#developer' },
+  ];
 
   return (
-    <nav className="navbar">
-      <div className="navbar-inner">
-        <Link href="/" className="navbar-logo">
-          💎 <span className="gradient-text">InvestBlock</span>
-        </Link>
-        <ul className="navbar-links">
-          <li>
-            <Link href="/" className={pathname === '/' ? 'active' : ''}>
-              Home
-            </Link>
-          </li>
-          <li>
-            <Link href="/businesses" className={pathname === '/businesses' ? 'active' : ''}>
-              Businesses
-            </Link>
-          </li>
-          <li>
-            <Link href="/create" className={pathname === '/create' ? 'active' : ''}>
-              Create
-            </Link>
-          </li>
-          <li>
-            <Link href="/dashboard" className={pathname === '/dashboard' ? 'active' : ''}>
-              Dashboard
-            </Link>
-          </li>
-        </ul>
-        <WalletMultiButton />
+    <header className="header">
+      <div className="container header-inner">
+        <div className="header-left">
+          <Logo />
+        </div>
+
+        <nav className="header-center">
+          <ul className="header-nav">
+            {navLinks.map((link) => (
+              <li key={link.name}>
+                <Link
+                  href={link.path}
+                  className={`nav-link ${pathname === link.path ? 'active' : ''}`}
+                >
+                  {link.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="header-right header-actions">
+          <WalletMultiButton />
+          <button className="hamburger" onClick={toggleMobileMenu} aria-label="Toggle mobile menu">
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
+          </button>
+        </div>
       </div>
-    </nav>
+
+      {isMobileOpen && (
+        <div className="mobile-nav">
+          <ul>
+            {navLinks.map((link) => (
+              <li key={link.name}>
+                <Link
+                  href={link.path}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={pathname === link.path ? 'active' : ''}
+                >
+                  {link.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </header>
   );
 }

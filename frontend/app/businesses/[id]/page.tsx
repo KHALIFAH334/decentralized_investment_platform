@@ -36,7 +36,7 @@ export default function BusinessDetailPage() {
   const [investAmount, setInvestAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ type: string; message: string } | null>(null);
-  
+
   const { data: metadata, loading: metaLoading } = useBusinessMetadata(id);
 
   const fetchBusiness = useCallback(async () => {
@@ -125,9 +125,9 @@ export default function BusinessDetailPage() {
   if (loading || metaLoading) {
     return (
       <div className="container">
-        <div style={{ paddingTop: 'var(--space-xl)' }}>
-          <div className="skeleton" style={{ height: 40, width: 300, marginBottom: 'var(--space-lg)' }}></div>
-          <div className="skeleton" style={{ height: 400 }}></div>
+        <div style={{ paddingTop: 'var(--space-2xl)' }}>
+          <div className="skeleton" style={{ height: 32, width: 280, marginBottom: 'var(--space-lg)' }}></div>
+          <div className="skeleton" style={{ height: 360 }}></div>
         </div>
       </div>
     );
@@ -137,9 +137,9 @@ export default function BusinessDetailPage() {
     return (
       <div className="container">
         <div className="empty-state">
-          <h3>Business not found</h3>
-          <p>This business listing does not exist.</p>
-          <Link href="/businesses" className="btn-primary">Browse Businesses</Link>
+          <h3>Entity not found</h3>
+          <p>This listing does not exist or has been removed.</p>
+          <Link href="/businesses" className="btn-primary">Back to Marketplace</Link>
         </div>
       </div>
     );
@@ -159,52 +159,68 @@ export default function BusinessDetailPage() {
   return (
     <div className="container fade-in">
       <div style={{ paddingTop: 'var(--space-lg)', marginBottom: 'var(--space-md)' }}>
-        <Link href="/businesses" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          ← Back to listings
+        <Link href="/businesses" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>
+          ← Back to Marketplace
         </Link>
       </div>
 
       <div className="detail-layout">
-        <div className="detail-main">
+        <div>
           {metadata?.image_url && (
-            <div style={{ width: '100%', height: '300px', backgroundImage: `url(${metadata.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-xl)' }}></div>
+            <div style={{
+              width: '100%',
+              height: '280px',
+              backgroundImage: `url(${metadata.image_url})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: 'var(--space-xl)',
+              border: '1px solid var(--border-grid)',
+            }}></div>
           )}
           <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-lg)' }}>
               <div>
-                <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>{metadata?.name || 'Business Details'}</h1>
-                {metadata?.category && <div style={{ color: 'var(--accent-secondary)', fontSize: '0.9rem', marginTop: 4 }}>{metadata.category}</div>}
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
+                  {metadata?.name || 'Entity Details'}
+                </h1>
+                {metadata?.category && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>
+                    {metadata.category}
+                  </div>
+                )}
               </div>
               <span className={statusBadge.className}>{statusBadge.label}</span>
             </div>
-            
+
             {metadata?.description && (
-              <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 'var(--space-xl)' }}>
-                {metadata.description.split('\n').map((line, i) => (
+              <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 'var(--space-xl)', fontSize: '0.9rem' }}>
+                {metadata.description.split('\n').map((line: string, i: number) => (
                   <p key={i} style={{ marginBottom: line ? '0.5rem' : 0 }}>{line}</p>
                 ))}
               </div>
             )}
-            
+
             {metadata?.website_url && (
               <div style={{ marginBottom: 'var(--space-xl)' }}>
-                <a href={metadata.website_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <a href={metadata.website_url} target="_blank" rel="noopener noreferrer"
+                  style={{ color: 'var(--accent-link)', fontSize: '0.85rem', fontWeight: 500 }}>
                   Visit Website ↗
                 </a>
               </div>
             )}
 
             <div style={{ marginBottom: 'var(--space-lg)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)', fontSize: '0.85rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Funding Progress</span>
-                <span style={{ fontWeight: 600 }}>{progress.toFixed(1)}%</span>
+                <span className="mono" style={{ fontWeight: 600 }}>{progress.toFixed(1)}%</span>
               </div>
-              <div className="progress-bar" style={{ height: 12 }}>
+              <div className="progress-bar" style={{ height: 8 }}>
                 <div className="progress-fill" style={{ width: `${progress}%` }}></div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-xs)', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                <span>{raisedSol.toFixed(2)} SOL raised</span>
-                <span>{goalSol.toFixed(2)} SOL goal</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-xs)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <span className="mono">{raisedSol.toFixed(2)} SOL raised</span>
+                <span className="mono">{goalSol.toFixed(2)} SOL goal</span>
               </div>
             </div>
 
@@ -220,7 +236,7 @@ export default function BusinessDetailPage() {
               <span className="detail-stat-label">Total Equity Tokens</span>
               <span className="detail-stat-value">{(business.totalEquityTokens / 1e6).toLocaleString()}</span>
             </div>
-            <div className="detail-stat">
+            <div className="detail-stat" style={{ borderBottom: 'none' }}>
               <span className="detail-stat-label">Mint Address</span>
               <span className="detail-stat-value">{truncateAddress(business.mintKey)}</span>
             </div>
@@ -229,20 +245,20 @@ export default function BusinessDetailPage() {
 
         <div className="detail-sidebar">
           <div className="card">
-            <h3 style={{ marginBottom: 'var(--space-lg)', fontSize: '1.2rem', fontWeight: 700 }}>Invest</h3>
+            <h3 style={{ marginBottom: 'var(--space-lg)', fontSize: '1rem', fontWeight: 700 }}>Invest</h3>
 
             {!wallet ? (
-              <p style={{ color: 'var(--text-secondary)' }}>Connect your wallet to invest.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Connect your wallet to invest.</p>
             ) : !canInvest ? (
-              <p style={{ color: 'var(--text-secondary)' }}>
-                {business.isClosed ? 'This business is closed.' : 'This business is fully funded.'}
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                {business.isClosed ? 'This entity is closed.' : 'This entity is fully funded.'}
               </p>
             ) : (
               <>
                 <div className="form-group">
                   <label className="label">Amount (SOL)</label>
                   <input
-                    className="input"
+                    className="input mono"
                     type="number"
                     step="0.01"
                     min="0"
@@ -258,13 +274,13 @@ export default function BusinessDetailPage() {
                     background: 'var(--bg-surface)',
                     borderRadius: 'var(--radius-md)',
                     marginBottom: 'var(--space-lg)',
-                    border: '1px solid var(--border)'
+                    border: '1px solid var(--border-grid)',
                   }}>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 4 }}>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
                       You will receive
                     </div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 700 }}>
-                      <span className="gradient-text">{tokensPreview.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span> tokens
+                    <div className="mono" style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      {tokensPreview.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-muted)' }}>tokens</span>
                     </div>
                   </div>
                 )}
