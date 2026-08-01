@@ -21,9 +21,8 @@ export function Navbar() {
 
   const navLinks = [
     { name: 'Invoices', path: '/businesses' },
-    { name: 'Cap Tables', path: '/dashboard' },
+    { name: 'Portfolio', path: '/dashboard' },
     { name: 'Factor Invoice', path: '/create' },
-    { name: 'Developer', path: '#developer' },
   ];
 
   return (
