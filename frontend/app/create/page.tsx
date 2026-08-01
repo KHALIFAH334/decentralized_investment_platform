@@ -64,10 +64,10 @@ export default function CreateBusinessPage() {
     const equity = parseInt(equityPercentage);
     const tokens = parseFloat(totalTokens);
 
-    if (isNaN(goal) || goal <= 0) { showToast('error', 'Enter a valid funding goal'); return; }
-    if (isNaN(equity) || equity < 1 || equity > 100) { showToast('error', 'Equity must be between 1-100%'); return; }
+    if (isNaN(goal) || goal <= 0) { showToast('error', 'Enter a valid invoice value'); return; }
+    if (isNaN(equity) || equity < 1 || equity > 100) { showToast('error', 'Yield must be between 1-100%'); return; }
     if (isNaN(tokens) || tokens <= 0) { showToast('error', 'Enter a valid token supply'); return; }
-    if (!name.trim()) { showToast('error', 'Entity name is required'); return; }
+    if (!name.trim()) { showToast('error', 'Debtor/Company name is required'); return; }
 
     try {
       setSubmitting(true);
@@ -116,9 +116,9 @@ export default function CreateBusinessPage() {
 
       if (dbError) {
         console.error('Supabase error:', dbError);
-        showToast('warning', `Entity created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed.`);
+        showToast('warning', `Invoice created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed.`);
       } else {
-        showToast('success', `Entity created successfully! TX: ${tx.slice(0, 16)}...`);
+        showToast('success', `Invoice created successfully! TX: ${tx.slice(0, 16)}...`);
       }
 
       // Reset form
@@ -140,8 +140,8 @@ export default function CreateBusinessPage() {
   return (
     <div className="container fade-in">
       <div className="page-header">
-        <h1>Create Listing</h1>
-        <p>Launch a new equity offering on the Solana blockchain.</p>
+        <h1>Factor Invoice</h1>
+        <p>Launch a new debt factoring offering on the Solana blockchain.</p>
       </div>
 
       <div className="detail-layout">
@@ -150,22 +150,22 @@ export default function CreateBusinessPage() {
             <h3 style={{ marginBottom: 'var(--space-lg)', fontSize: '1rem', fontWeight: 700 }}>Listing Details</h3>
 
             {!publicKey ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Connect your wallet to create an entity listing.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Connect your wallet to create an invoice listing.</p>
             ) : (
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: 'var(--space-xl)', paddingBottom: 'var(--space-md)', borderBottom: '1px solid var(--border-grid)' }}>
                   <h4 style={{ marginBottom: 'var(--space-md)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
-                    1. Entity Profile (Off-chain)
+                    1. Debtor Profile (Off-chain)
                   </h4>
 
                   <div className="form-group">
-                    <label className="label">Entity Name</label>
+                    <label className="label">Debtor / Company Name</label>
                     <input className="input" type="text" placeholder="e.g. Mama's Bakery" value={name} onChange={(e) => setName(e.target.value)} required />
                   </div>
 
                   <div className="form-group">
-                    <label className="label">Description</label>
-                    <textarea className="input" placeholder="Tell investors about your business..." value={description} onChange={(e) => setDescription(e.target.value)} style={{ minHeight: 100 }} required />
+                    <label className="label">Invoice Details</label>
+                    <textarea className="input" placeholder="Tell investors about this invoice and the underlying business..." value={description} onChange={(e) => setDescription(e.target.value)} style={{ minHeight: 100 }} required />
                   </div>
 
                   <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
@@ -187,7 +187,7 @@ export default function CreateBusinessPage() {
                   </div>
 
                   <div className="form-group">
-                    <label className="label">Cover Image</label>
+                    <label className="label">Invoice Document / Cover Image</label>
                     <input className="input" type="file" accept="image/*" onChange={(e) => {
                       if (e.target.files && e.target.files[0]) setImageFile(e.target.files[0]);
                     }} />
@@ -196,21 +196,21 @@ export default function CreateBusinessPage() {
 
                 <div style={{ marginBottom: 'var(--space-xl)' }}>
                   <h4 style={{ marginBottom: 'var(--space-md)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
-                    2. Financials (On-chain)
+                    2. Factoring Financials (On-chain)
                   </h4>
 
                   <div className="form-group">
-                    <label className="label">Funding Goal (SOL)</label>
+                    <label className="label">Invoice Value / Target (SOL)</label>
                     <input className="input mono" type="number" step="0.1" min="0" placeholder="e.g. 10" value={fundingGoal} onChange={(e) => setFundingGoal(e.target.value)} required />
                   </div>
 
                   <div className="form-group">
-                    <label className="label">Equity Percentage (%)</label>
+                    <label className="label">Discount Yield Offered (%)</label>
                     <input className="input mono" type="number" min="1" max="100" placeholder="e.g. 20" value={equityPercentage} onChange={(e) => setEquityPercentage(e.target.value)} required />
                   </div>
 
                   <div className="form-group">
-                    <label className="label">Total Equity Tokens (Supply)</label>
+                    <label className="label">Total Yield Tokens (Supply)</label>
                     <input className="input mono" type="number" min="1" placeholder="e.g. 1000000" value={totalTokens} onChange={(e) => setTotalTokens(e.target.value)} required />
                   </div>
                 </div>
@@ -221,7 +221,7 @@ export default function CreateBusinessPage() {
                   style={{ width: '100%' }}
                   disabled={submitting}
                 >
-                  {submitting ? 'Creating Listing...' : 'Create Entity'}
+                  {submitting ? 'Factoring Invoice...' : 'Factor Invoice'}
                 </button>
               </form>
             )}
@@ -238,16 +238,16 @@ export default function CreateBusinessPage() {
 
             <div style={{ padding: 'var(--space-lg)' }}>
               <h3 style={{ marginBottom: 'var(--space-xs)', fontSize: '1rem', fontWeight: 700 }}>
-                {name || 'Entity Name'}
+                {name || 'Debtor Name'}
               </h3>
               {category && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)', fontWeight: 500 }}>{category}</div>}
 
               <div className="detail-stat">
-                <span className="detail-stat-label">Funding Goal</span>
+                <span className="detail-stat-label">Invoice Value</span>
                 <span className="detail-stat-value">{previewGoal.toFixed(2)} SOL</span>
               </div>
               <div className="detail-stat">
-                <span className="detail-stat-label">Equity Offered</span>
+                <span className="detail-stat-label">Discount Yield</span>
                 <span className="detail-stat-value">{previewEquity}%</span>
               </div>
               <div className="detail-stat" style={{ borderBottom: 'none' }}>

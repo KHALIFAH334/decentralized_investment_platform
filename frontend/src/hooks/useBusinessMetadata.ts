@@ -30,8 +30,8 @@ export function useAllBusinessMetadata() {
         });
       }
       setMetadata(map);
-    } catch (err) {
-      console.error('Error fetching metadata:', err);
+    } catch (err: any) {
+      console.error('Error fetching metadata:', err?.message || JSON.stringify(err) || err);
     } finally {
       setLoading(false);
     }
@@ -59,11 +59,11 @@ export function useBusinessMetadata(id: string | null) {
         .single();
       
       if (error && error.code !== 'PGRST116') { // PGRST116 is not found
-        console.error('Error fetching business:', error);
+        console.error('Error fetching business:', error?.message || JSON.stringify(error) || error);
       }
       setData(data as BusinessMetadata || null);
-    } catch (err) {
-      console.error('Exception fetching business:', err);
+    } catch (err: any) {
+      console.error('Exception fetching business:', err?.message || JSON.stringify(err) || err);
     } finally {
       setLoading(false);
     }

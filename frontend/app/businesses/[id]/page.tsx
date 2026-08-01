@@ -137,9 +137,9 @@ export default function BusinessDetailPage() {
     return (
       <div className="container">
         <div className="empty-state">
-          <h3>Entity not found</h3>
+          <h3>Invoice not found</h3>
           <p>This listing does not exist or has been removed.</p>
-          <Link href="/businesses" className="btn-primary">Back to Marketplace</Link>
+          <Link href="/businesses" className="btn-primary">Back to Invoices</Link>
         </div>
       </div>
     );
@@ -160,7 +160,7 @@ export default function BusinessDetailPage() {
     <div className="container fade-in">
       <div style={{ paddingTop: 'var(--space-lg)', marginBottom: 'var(--space-md)' }}>
         <Link href="/businesses" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>
-          ← Back to Marketplace
+          ← Back to Invoices
         </Link>
       </div>
 
@@ -182,7 +182,7 @@ export default function BusinessDetailPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-lg)' }}>
               <div>
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
-                  {metadata?.name || 'Entity Details'}
+                  {metadata?.name || 'Invoice Details'}
                 </h1>
                 {metadata?.category && (
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>
@@ -229,11 +229,11 @@ export default function BusinessDetailPage() {
               <span className="detail-stat-value">{truncateAddress(business.owner)}</span>
             </div>
             <div className="detail-stat">
-              <span className="detail-stat-label">Equity Offered</span>
+              <span className="detail-stat-label">Discount Yield</span>
               <span className="detail-stat-value">{business.equityPercentage}%</span>
             </div>
             <div className="detail-stat">
-              <span className="detail-stat-label">Total Equity Tokens</span>
+              <span className="detail-stat-label">Total Yield Tokens</span>
               <span className="detail-stat-value">{(business.totalEquityTokens / 1e6).toLocaleString()}</span>
             </div>
             <div className="detail-stat" style={{ borderBottom: 'none' }}>
@@ -248,10 +248,10 @@ export default function BusinessDetailPage() {
             <h3 style={{ marginBottom: 'var(--space-lg)', fontSize: '1rem', fontWeight: 700 }}>Invest</h3>
 
             {!wallet ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Connect your wallet to invest.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Connect your wallet to factor this invoice.</p>
             ) : !canInvest ? (
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                {business.isClosed ? 'This entity is closed.' : 'This entity is fully funded.'}
+                {business.isClosed ? 'This invoice is closed.' : 'This invoice is fully funded.'}
               </p>
             ) : (
               <>

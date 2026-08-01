@@ -31,7 +31,7 @@ export default function DashboardPage() {
       <div className="container">
         <div className="empty-state">
           <h3>Connect Your Wallet</h3>
-          <p>Connect your Solana wallet to view your cap table.</p>
+          <p>Connect your Solana wallet to view your factoring portfolio.</p>
         </div>
       </div>
     );
@@ -42,8 +42,8 @@ export default function DashboardPage() {
   return (
     <div className="container fade-in">
       <div className="page-header">
-        <h1>Cap Tables</h1>
-        <p>Manage your entities and investment portfolio.</p>
+        <h1>Portfolio</h1>
+        <p>Manage your invoices and factoring portfolio.</p>
       </div>
 
       <div className="tabs">
@@ -51,7 +51,7 @@ export default function DashboardPage() {
           className={`tab ${activeTab === 'businesses' ? 'active' : ''}`}
           onClick={() => setActiveTab('businesses')}
         >
-          My Entities ({myBusinesses.length})
+          My Invoices ({myBusinesses.length})
         </button>
         <button
           className={`tab ${activeTab === 'investments' ? 'active' : ''}`}
@@ -105,8 +105,8 @@ function MyInvestmentsTab() {
   if (investedBusinesses.length === 0) {
     return (
       <div className="empty-state">
-        <h3>No Investments Found</h3>
-        <p>You haven&apos;t invested in any entities on the platform yet.</p>
+        <h3>No Factored Invoices Found</h3>
+        <p>You haven&apos;t factored any invoices on the platform yet.</p>
       </div>
     );
   }
@@ -127,7 +127,7 @@ function MyInvestmentsTab() {
               <div style={{ width: '100%', height: '120px', background: 'var(--bg-surface)' }}></div>
             )}
             <div style={{ padding: 'var(--space-lg)' }}>
-              <h3 style={{ margin: '0 0 var(--space-xs)', fontSize: '1rem', fontWeight: 700 }}>{meta?.name || 'Unnamed Entity'}</h3>
+              <h3 style={{ margin: '0 0 var(--space-xs)', fontSize: '1rem', fontWeight: 700 }}>{meta?.name || 'Unnamed Debtor'}</h3>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 'var(--space-lg)', fontWeight: 500 }}>
                 {meta?.category || 'Uncategorized'}
               </div>
@@ -140,7 +140,7 @@ function MyInvestmentsTab() {
               </div>
 
               <div className="detail-stat" style={{ borderBottom: 'none', fontSize: '0.85rem' }}>
-                <span className="detail-stat-label">Ownership Stake</span>
+                <span className="detail-stat-label">Yield Stake</span>
                 <span className="detail-stat-value">{ownershipPercentage}%</span>
               </div>
             </div>
@@ -184,8 +184,8 @@ function MyBusinessesTab({
   if (businesses.length === 0) {
     return (
       <div className="empty-state">
-        <h3>No Entities</h3>
-        <p>You haven&apos;t created any entity listings yet.</p>
+        <h3>No Invoices</h3>
+        <p>You haven&apos;t listed any invoices yet.</p>
       </div>
     );
   }
@@ -272,7 +272,7 @@ function MyBusinessesTab({
         })
         .rpc({ commitment: 'confirmed' });
 
-      showToast('success', 'Entity closed!');
+      showToast('success', 'Invoice closed!');
       refresh();
     } catch (e: any) {
       showToast('error', e.message || 'Close failed');
@@ -383,7 +383,7 @@ function MyBusinessesTab({
                   disabled={actionLoading === `close-${biz.publicKey}`}
                   style={{ color: 'var(--error)', borderColor: 'var(--error)' }}
                 >
-                  {actionLoading === `close-${biz.publicKey}` ? 'Closing...' : 'Close Entity'}
+                  {actionLoading === `close-${biz.publicKey}` ? 'Closing...' : 'Close Invoice'}
                 </button>
               </div>
             )}

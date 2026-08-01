@@ -16,8 +16,8 @@ export default function MarketplacePage() {
   return (
     <div className="container fade-in">
       <div className="page-header">
-        <h1>Marketplace</h1>
-        <p>Active equity offerings on Solana Devnet.</p>
+        <h1>Invoices</h1>
+        <p>Active MSME invoice factoring offerings on Solana Devnet.</p>
       </div>
 
       {error && (
@@ -45,7 +45,7 @@ export default function MarketplacePage() {
             <table className="data-grid">
               <thead>
                 <tr>
-                  <th>ENTITY</th>
+                  <th>DEBTOR / COMPANY</th>
                   <th>SECTOR</th>
                   <th className="align-right">TARGET (SOL)</th>
                   <th className="align-right">RAISED (%)</th>
@@ -118,7 +118,7 @@ export default function MarketplacePage() {
               return (
                 <div key={biz.publicKey} className="data-grid-card">
                   <div className="data-grid-card-header">
-                    <strong>{meta?.name || 'Unnamed Entity'}</strong>
+                    <strong>{meta?.name || 'Unnamed Debtor'}</strong>
                     <span className={statusBadge.className}>{statusBadge.label}</span>
                   </div>
 

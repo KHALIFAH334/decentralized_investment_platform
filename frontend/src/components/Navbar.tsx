@@ -20,9 +20,9 @@ export function Navbar() {
   };
 
   const navLinks = [
-    { name: 'Marketplace', path: '/businesses' },
+    { name: 'Invoices', path: '/businesses' },
     { name: 'Cap Tables', path: '/dashboard' },
-    { name: 'Create', path: '/create' },
+    { name: 'Factor Invoice', path: '/create' },
     { name: 'Developer', path: '#developer' },
   ];
 

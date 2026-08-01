@@ -9,11 +9,11 @@ export default function LandingPage() {
   return (
     <div className="container">
       <div className="hero fade-in">
-        <h1>Institutional On-Chain<br />Equity Raising.</h1>
-        <p>Anchor Capital brings fractional equity investing to Solana. Fund local businesses, receive tokenized equity, earn dividends all on-chain.</p>
+        <h1>Institutional On-Chain<br />Debt Factoring.</h1>
+        <p>Anchor Capital brings MSME invoice factoring to Solana. Fund unpaid invoices, receive tokenized yield assets, and earn returns all on-chain.</p>
         <div className="hero-buttons">
-          <Link href="/businesses" className="btn-primary">Browse Marketplace</Link>
-          <Link href="/create" className="btn-secondary">List Your Business</Link>
+          <Link href="/businesses" className="btn-primary">Browse Invoices</Link>
+          <Link href="/create" className="btn-secondary">Factor Your Invoice</Link>
         </div>
       </div>
 
@@ -29,7 +29,7 @@ export default function LandingPage() {
           <div className="stat-ticker-sub">8 funding</div>
         </div>
         <div className="stat-ticker-item">
-          <div className="stat-ticker-label">EQUITY DISTRIBUTED</div>
+          <div className="stat-ticker-label">YIELD ASSETS DISTRIBUTED</div>
           <div className="stat-ticker-value mono">2.4M tokens</div>
           <div className="stat-ticker-sub">Token-2022</div>
         </div>
@@ -48,8 +48,8 @@ export default function LandingPage() {
             <div className="flashcard-front">
               <div className="flashcard-number mono">01</div>
               <div className="flashcard-icon">⚡</div>
-              <div className="flashcard-title">The Equity Tokenizer</div>
-              <div className="flashcard-desc">Token-2022 minting turns your company's equity into tradable, fractional assets directly on-chain.</div>
+              <div className="flashcard-title">The Debt Tokenizer</div>
+              <div className="flashcard-desc">Token-2022 minting turns your company's unpaid invoices into tradable, fractional yield assets directly on-chain.</div>
             </div>
             <div className="flashcard-back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
               <pre className="mono" style={{ fontSize: '0.75rem', textAlign: 'left', whiteSpace: 'pre-wrap', overflowX: 'hidden' }}>
@@ -69,8 +69,8 @@ export default function LandingPage() {
             <div className="flashcard-front">
               <div className="flashcard-number mono">02</div>
               <div className="flashcard-icon">💰</div>
-              <div className="flashcard-title">Automated Dividend Vault</div>
-              <div className="flashcard-desc">Distribute dividends to all your token holders automatically using our program vaults.</div>
+              <div className="flashcard-title">Automated Yield Vault</div>
+              <div className="flashcard-desc">Distribute yield to all your token holders automatically using our trustless PDA escrow vaults.</div>
             </div>
             <div className="flashcard-back" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
                <div style={{ marginBottom: '1rem', textAlign: 'center' }}>

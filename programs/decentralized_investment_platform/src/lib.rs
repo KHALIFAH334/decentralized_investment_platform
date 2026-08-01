@@ -304,6 +304,50 @@ pub mod decentralized_investment_platform {
         msg!("Business closed by owner. No further investments accepted.");
         Ok(())
     }
+
+    /// Allows an investor to refund their investment if the business was closed
+    /// without reaching its funding goal.
+    pub fn refund_investment(ctx: Context<RefundInvestment>) -> Result<()> {
+        let business_state = &ctx.accounts.business_state;
+        
+        require!(business_state.is_closed, DipError::BusinessNotClosed);
+        require!(!business_state.is_funded, DipError::AlreadyFunded);
+
+        let investor_token_balance = ctx.accounts.investor_token_account.amount;
+        require!(investor_token_balance > 0, DipError::NoTokensHeld);
+
+        let total_equity_tokens = business_state.total_equity_tokens;
+        let funding_goal = business_state.funding_goal;
+
+        // Refund = tokens_burned * (funding_goal / total_equity_tokens)
+        // Mathematically reverses: tokens = actual_investment * total_equity_tokens / funding_goal
+        let refund_amount = (investor_token_balance as u128)
+            .checked_mul(funding_goal as u128)
+            .ok_or(DipError::Overflow)?
+            .checked_div(total_equity_tokens as u128)
+            .ok_or(DipError::Overflow)? as u64;
+
+        require!(refund_amount > 0, DipError::RefundTooSmall);
+
+        // Burn the investor's tokens
+        let cpi_burn = CpiContext::new(
+            ctx.accounts.token_program.key(),
+            anchor_spl::token_interface::Burn {
+                mint: ctx.accounts.equity_mint.to_account_info(),
+                from: ctx.accounts.investor_token_account.to_account_info(),
+                authority: ctx.accounts.investor.to_account_info(),
+            },
+        );
+        anchor_spl::token_interface::burn(cpi_burn, investor_token_balance)?;
+
+        // Transfer SOL from PDA to investor
+        business_state.sub_lamports(refund_amount)?;
+        ctx.accounts.investor.add_lamports(refund_amount)?;
+
+        msg!("Refund successful: {} tokens burned, {} lamports refunded", investor_token_balance, refund_amount);
+
+        Ok(())
+    }
 }
 
 // ============================================================================
@@ -436,6 +480,35 @@ pub struct CloseBusiness<'info> {
     pub business_state: Account<'info, BusinessState>,
 }
 
+#[derive(Accounts)]
+pub struct RefundInvestment<'info> {
+    #[account(mut)]
+    pub investor: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"business", business_state.owner.as_ref()],
+        bump = business_state.bump,
+    )]
+    pub business_state: Account<'info, BusinessState>,
+
+    #[account(
+        mut,
+        address = business_state.mint_key,
+    )]
+    pub equity_mint: InterfaceAccount<'info, Mint>,
+
+    #[account(
+        mut,
+        associated_token::mint = equity_mint,
+        associated_token::authority = investor,
+        associated_token::token_program = token_program,
+    )]
+    pub investor_token_account: InterfaceAccount<'info, TokenAccount>,
+
+    pub token_program: Interface<'info, TokenInterface>,
+}
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -501,4 +574,8 @@ pub enum DipError {
     Overflow,
     #[msg("You are not authorized to perform this action")]
     Unauthorized,
+    #[msg("Business is not closed")]
+    BusinessNotClosed,
+    #[msg("Refund amount too small")]
+    RefundTooSmall,
 }

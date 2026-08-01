@@ -339,4 +339,105 @@ describe("Decentralized Investment Platform", () => {
       console.log("    ✅ Investment correctly rejected: BusinessClosed");
     }
   });
+
+  it("8. Investor can refund if business is closed and funding goal is not met", async () => {
+    // Setup a new business and investor
+    const refundBusinessMint = Keypair.generate();
+    const refundInvestor = Keypair.generate();
+    
+    // Derive PDA for new business
+    const [refundPda, refundBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("business"), owner.publicKey.toBuffer()],
+      program.programId
+    );
+
+    // Because the seed relies on owner public key, we must use a different owner for the second business 
+    // to avoid PDA conflict. Let's create a new owner.
+    const newOwner = Keypair.generate();
+    const [newPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("business"), newOwner.publicKey.toBuffer()],
+      program.programId
+    );
+
+    // Airdrop SOL
+    const airdrop1 = await provider.connection.requestAirdrop(newOwner.publicKey, 5 * LAMPORTS_PER_SOL);
+    const airdrop2 = await provider.connection.requestAirdrop(refundInvestor.publicKey, 5 * LAMPORTS_PER_SOL);
+    await provider.connection.confirmTransaction(airdrop1, "confirmed");
+    await provider.connection.confirmTransaction(airdrop2, "confirmed");
+
+    // 1. Initialize
+    await program.methods
+      .initializeBusiness(FUNDING_GOAL, EQUITY_PERCENTAGE, TOTAL_EQUITY_TOKENS)
+      .accounts({
+        owner: newOwner.publicKey,
+        businessState: newPda,
+        equityMint: refundBusinessMint.publicKey,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([newOwner, refundBusinessMint])
+      .rpc();
+
+    // 2. Invest 1 SOL (partial funding)
+    const investAmount = new anchor.BN(1 * LAMPORTS_PER_SOL);
+    const investorAta = getAssociatedTokenAddressSync(
+      refundBusinessMint.publicKey,
+      refundInvestor.publicKey,
+      false,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    await program.methods
+      .invest(investAmount)
+      .accounts({
+        investor: refundInvestor.publicKey,
+        businessState: newPda,
+        equityMint: refundBusinessMint.publicKey,
+        investorTokenAccount: investorAta,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([refundInvestor])
+      .rpc({ commitment: "confirmed" });
+
+    // 3. Close the business (goal not met)
+    await program.methods
+      .closeBusiness()
+      .accounts({
+        owner: newOwner.publicKey,
+        businessState: newPda,
+      })
+      .signers([newOwner])
+      .rpc({ commitment: "confirmed" });
+
+    // 4. Refund
+    const balanceBefore = await provider.connection.getBalance(refundInvestor.publicKey);
+
+    const tx = await program.methods
+      .refundInvestment()
+      .accounts({
+        investor: refundInvestor.publicKey,
+        businessState: newPda,
+        equityMint: refundBusinessMint.publicKey,
+        investorTokenAccount: investorAta,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .signers([refundInvestor])
+      .rpc({ commitment: "confirmed" });
+    
+    console.log("    tx:", tx);
+
+    const balanceAfter = await provider.connection.getBalance(refundInvestor.publicKey);
+    const refundedAmount = balanceAfter - balanceBefore;
+    
+    // We invested 1 SOL, we expect roughly 1 SOL back (minus tx fees)
+    expect(refundedAmount).to.be.greaterThan(0.99 * LAMPORTS_PER_SOL);
+    
+    // Verify tokens were burned
+    const tokenAccountInfo = await provider.connection.getTokenAccountBalance(investorAta);
+    expect(tokenAccountInfo.value.uiAmount).to.equal(0);
+
+    console.log("    ✅ Refund correctly processed");
+  });
 });
