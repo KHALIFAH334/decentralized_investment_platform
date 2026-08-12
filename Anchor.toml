@@ -6,11 +6,11 @@ solana_version = "3.1.10"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
+[programs.devnet]
 decentralized_investment_platform = "5gEZHMQfMSKofq89gBkWPzwx7g1vy3d1pn8RJjRSkN4Z"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
