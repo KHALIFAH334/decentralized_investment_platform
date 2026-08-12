@@ -6,7 +6,6 @@ import { useProgram } from '../../src/hooks/useProgram';
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL, Keypair } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { BN } from '@coral-xyz/anchor';
-import { supabase } from '../../src/lib/supabase';
 
 const PROGRAM_ID = new PublicKey('5gEZHMQfMSKofq89gBkWPzwx7g1vy3d1pn8RJjRSkN4Z');
 
@@ -32,20 +31,28 @@ export default function CreateBusinessPage() {
     setTimeout(() => setToast(null), 6000);
   };
 
+  /**
+   * Upload image via the server-side API route.
+   * The admin Supabase client handles the actual storage upload.
+   * This keeps the service_role key off the frontend.
+   */
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `public/${fileName}`;
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const { error: uploadError } = await supabase.storage
-        .from('business-images')
-        .upload(filePath, file);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-      if (uploadError) throw uploadError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
 
-      const { data } = supabase.storage.from('business-images').getPublicUrl(filePath);
-      return data.publicUrl;
+      const data = await response.json();
+      return data.url;
     } catch (error) {
       console.error('Error uploading image: ', error);
       showToast('error', 'Image upload failed. Continuing anyway...');
@@ -72,7 +79,7 @@ export default function CreateBusinessPage() {
     try {
       setSubmitting(true);
 
-      // 1. Upload image if present
+      // 1. Upload image via server-side API route (if present)
       let imageUrl = '';
       if (imageFile) {
         const uploadedUrl = await uploadImage(imageFile);
@@ -101,9 +108,14 @@ export default function CreateBusinessPage() {
         .signers([mintKeypair])
         .rpc({ commitment: 'confirmed' });
 
-      // 3. Save Metadata to Supabase
-      const { error: dbError } = await supabase.from('businesses').insert([
-        {
+      // 3. Save Metadata via server-side API route
+      //    The API route validates, sanitizes, and inserts using the admin client.
+      //    This keeps the service_role key off the frontend and ensures
+      //    all inputs are parameterized on the server side.
+      const response = await fetch('/api/businesses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           id: businessPda.toBase58(),
           owner: publicKey.toBase58(),
           name,
@@ -111,12 +123,13 @@ export default function CreateBusinessPage() {
           category,
           image_url: imageUrl,
           website_url: websiteUrl,
-        }
-      ]);
+        }),
+      });
 
-      if (dbError) {
-        console.error('Supabase error:', dbError);
-        showToast('warning', `Campaign created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed.`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API error:', errorData);
+        showToast('warning', `Campaign created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed: ${errorData.error}`);
       } else {
         showToast('success', `Campaign submitted successfully!`);
       }
