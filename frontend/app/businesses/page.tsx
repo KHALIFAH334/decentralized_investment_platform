@@ -17,7 +17,7 @@ export default function MarketplacePage() {
     <div className="container fade-in">
       <div className="page-header">
         <h1>MarketPlace</h1>
-        <p>Active, approved MSME campaigns on Solana Devnet.</p>
+        <p>Active MSME campaigns on Solana Devnet.</p>
       </div>
 
       {error && (
@@ -39,19 +39,8 @@ export default function MarketplacePage() {
           <Link href="/create" className="btn-primary">List Your Business</Link>
         </div>
       ) : (
-        (() => {
-          const approvedBusinesses = businesses.filter(biz => metadata[biz.publicKey]?.is_approved);
-          if (approvedBusinesses.length === 0) {
-            return (
-              <div className="empty-state">
-                <h3>No approved campaigns</h3>
-                <p>Campaigns are currently under review by administrators.</p>
-              </div>
-            );
-          }
-          return (
-            <>
-              {/* Desktop Table */}
+        <>
+          {/* Desktop Table */}
           <div className="data-grid-desktop">
             <table className="data-grid">
               <thead>
@@ -65,7 +54,7 @@ export default function MarketplacePage() {
                 </tr>
               </thead>
               <tbody>
-                {approvedBusinesses.map((biz) => {
+                {businesses.map((biz) => {
                   const meta = metadata[biz.publicKey];
                   const goalSol = biz.fundingGoal / 1e9;
                   const progress = biz.fundingGoal > 0
@@ -113,7 +102,7 @@ export default function MarketplacePage() {
 
           {/* Mobile Cards */}
           <div className="data-grid-mobile">
-            {approvedBusinesses.map((biz) => {
+            {businesses.map((biz) => {
               const meta = metadata[biz.publicKey];
               const goalSol = biz.fundingGoal / 1e9;
               const progress = biz.fundingGoal > 0
@@ -165,9 +154,7 @@ export default function MarketplacePage() {
               );
             })}
           </div>
-            </>
-          );
-        })()
+        </>
       )}
     </div>
   );

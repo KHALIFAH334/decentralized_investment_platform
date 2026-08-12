@@ -93,6 +93,9 @@ When we compiled the smart contract, Anchor generated a JSON file (`decentralize
 **Q: Why didn't you use Tailwind CSS?**
 *A:* I chose to build a custom CSS architecture (`globals.css`) utilizing CSS Variables, Flexbox/Grid, and modern features like `backdrop-filter` to demonstrate a deep, fundamental understanding of CSS styling and design systems without relying on utility libraries.
 
+**Q: How do you prevent malicious actors or fake businesses from raising funds?**
+*A:* In this MVP, the platform operates in a permissionless manner. However, for a production rollout, we would integrate a Decentralized Oracle Network (like Chainlink) or a decentralized identity protocol (like Solana's Civic). The Oracle would securely bridge off-chain KYC (Know Your Customer) and business registration data on-chain. The smart contract would require the creator's wallet to hold a valid "Verified Identity" token or receive cryptographic confirmation from the Oracle before allowing the `initialize_business` transaction to succeed. This delegates the heavy lifting of real-world vetting to specialized identity networks without compromising the decentralized nature of the core protocol.
+
 ---
 
 **Good luck with your defense! You've built a complex, full-stack Web3 application that bridges on-chain financial logic with off-chain data management.**

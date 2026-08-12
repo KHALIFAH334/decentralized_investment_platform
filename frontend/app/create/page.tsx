@@ -118,7 +118,7 @@ export default function CreateBusinessPage() {
         console.error('Supabase error:', dbError);
         showToast('warning', `Campaign created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed.`);
       } else {
-        showToast('success', `Campaign submitted successfully! It will appear on the MarketPlace once approved by an administrator.`);
+        showToast('success', `Campaign submitted successfully!`);
       }
 
       // Reset form
