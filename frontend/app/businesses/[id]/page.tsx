@@ -3,12 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useProgram } from '../../../src/hooks/useProgram';
-import { useConnection } from '@solana/wallet-adapter-react';
-import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { BN } from '@coral-xyz/anchor';
+import { PublicKey } from '@solana/web3.js';
 import Link from 'next/link';
 import { useBusinessMetadata } from '../../../src/hooks/useBusinessMetadata';
+import { InvestmentSidebar } from '../../../src/components/InvestmentSidebar';
 
 interface BusinessDetail {
   publicKey: string;
@@ -30,11 +28,8 @@ export default function BusinessDetailPage() {
   const params = useParams();
   const id = params?.id as string;
   const { program, wallet } = useProgram();
-  const { connection } = useConnection();
   const [business, setBusiness] = useState<BusinessDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [investAmount, setInvestAmount] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ type: string; message: string } | null>(null);
 
   const { data: metadata, loading: metaLoading } = useBusinessMetadata(id);
@@ -70,58 +65,6 @@ export default function BusinessDetailPage() {
     setTimeout(() => setToast(null), 5000);
   };
 
-  const handleInvest = async () => {
-    if (!program || !wallet || !business) return;
-    const amountSol = parseFloat(investAmount);
-    if (isNaN(amountSol) || amountSol <= 0) {
-      showToast('error', 'Enter a valid SOL amount');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const amountLamports = new BN(amountSol * LAMPORTS_PER_SOL);
-      const businessPubkey = new PublicKey(business.publicKey);
-      const mintPubkey = new PublicKey(business.mintKey);
-
-      const investorAta = getAssociatedTokenAddressSync(
-        mintPubkey,
-        wallet.publicKey,
-        false,
-        TOKEN_2022_PROGRAM_ID
-      );
-
-      const tx = await program.methods
-        .invest(amountLamports)
-        .accounts({
-          investor: wallet.publicKey,
-          businessState: businessPubkey,
-          equityMint: mintPubkey,
-          investorTokenAccount: investorAta,
-          tokenProgram: TOKEN_2022_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc({ commitment: 'confirmed' });
-
-      showToast('success', `Investment successful! TX: ${tx.slice(0, 12)}...`);
-      setInvestAmount('');
-      await fetchBusiness();
-    } catch (e: any) {
-      showToast('error', e.message || 'Transaction failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const tokensPreview = (() => {
-    if (!business || !investAmount) return 0;
-    const amountSol = parseFloat(investAmount);
-    if (isNaN(amountSol) || amountSol <= 0) return 0;
-    const amountLamports = amountSol * LAMPORTS_PER_SOL;
-    return (amountLamports / business.fundingGoal) * (business.totalEquityTokens / 1e6);
-  })();
-
   if (loading || metaLoading) {
     return (
       <div className="container">
@@ -137,9 +80,9 @@ export default function BusinessDetailPage() {
     return (
       <div className="container">
         <div className="empty-state">
-          <h3>Invoice not found</h3>
+          <h3>Campaign not found</h3>
           <p>This listing does not exist or has been removed.</p>
-          <Link href="/businesses" className="btn-primary">Back to Invoices</Link>
+          <Link href="/businesses" className="btn-primary">Back to MarketPlace</Link>
         </div>
       </div>
     );
@@ -148,7 +91,6 @@ export default function BusinessDetailPage() {
   const goalSol = business.fundingGoal / 1e9;
   const raisedSol = business.totalRaised / 1e9;
   const progress = business.fundingGoal > 0 ? Math.min((business.totalRaised / business.fundingGoal) * 100, 100) : 0;
-  const canInvest = !business.isFunded && !business.isClosed && !!wallet;
 
   const statusBadge = business.isClosed
     ? { className: 'badge badge-closed', label: 'Closed' }
@@ -160,7 +102,7 @@ export default function BusinessDetailPage() {
     <div className="container fade-in">
       <div style={{ paddingTop: 'var(--space-lg)', marginBottom: 'var(--space-md)' }}>
         <Link href="/businesses" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>
-          ← Back to Invoices
+          ← Back to MarketPlace
         </Link>
       </div>
 
@@ -182,7 +124,7 @@ export default function BusinessDetailPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-lg)' }}>
               <div>
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
-                  {metadata?.name || 'Invoice Details'}
+                  {metadata?.name || 'Campaign Details'}
                 </h1>
                 {metadata?.category && (
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>
@@ -244,58 +186,13 @@ export default function BusinessDetailPage() {
         </div>
 
         <div className="detail-sidebar">
-          <div className="card">
-            <h3 style={{ marginBottom: 'var(--space-lg)', fontSize: '1rem', fontWeight: 700 }}>Invest</h3>
-
-            {!wallet ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Connect your wallet to factor this invoice.</p>
-            ) : !canInvest ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                {business.isClosed ? 'This invoice is closed.' : 'This invoice is fully funded.'}
-              </p>
-            ) : (
-              <>
-                <div className="form-group">
-                  <label className="label">Amount (SOL)</label>
-                  <input
-                    className="input mono"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={investAmount}
-                    onChange={(e) => setInvestAmount(e.target.value)}
-                  />
-                </div>
-
-                {tokensPreview > 0 && (
-                  <div style={{
-                    padding: 'var(--space-md)',
-                    background: 'var(--bg-surface)',
-                    borderRadius: 'var(--radius-md)',
-                    marginBottom: 'var(--space-lg)',
-                    border: '1px solid var(--border-grid)',
-                  }}>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
-                      You will receive
-                    </div>
-                    <div className="mono" style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      {tokensPreview.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-muted)' }}>tokens</span>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  className="btn-primary"
-                  style={{ width: '100%' }}
-                  onClick={handleInvest}
-                  disabled={submitting || !investAmount}
-                >
-                  {submitting ? 'Processing...' : 'Invest Now'}
-                </button>
-              </>
-            )}
-          </div>
+          <InvestmentSidebar
+            business={business}
+            program={program}
+            wallet={wallet}
+            onSuccess={fetchBusiness}
+            showToast={showToast}
+          />
         </div>
       </div>
 

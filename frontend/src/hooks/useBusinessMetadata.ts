@@ -11,6 +11,7 @@ export interface BusinessMetadata {
   category: string;
   image_url: string;
   website_url: string;
+  is_approved?: boolean;
 }
 
 export function useAllBusinessMetadata() {

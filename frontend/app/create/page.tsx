@@ -116,9 +116,9 @@ export default function CreateBusinessPage() {
 
       if (dbError) {
         console.error('Supabase error:', dbError);
-        showToast('warning', `Invoice created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed.`);
+        showToast('warning', `Campaign created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed.`);
       } else {
-        showToast('success', `Invoice created successfully! TX: ${tx.slice(0, 16)}...`);
+        showToast('success', `Campaign submitted successfully! It will appear on the MarketPlace once approved by an administrator.`);
       }
 
       // Reset form
@@ -140,8 +140,8 @@ export default function CreateBusinessPage() {
   return (
     <div className="container fade-in">
       <div className="page-header">
-        <h1>Factor Invoice</h1>
-        <p>Launch a new debt factoring offering on the Solana blockchain.</p>
+        <h1>Create Campaign</h1>
+        <p>Launch a new debt factoring campaign on the Solana blockchain.</p>
       </div>
 
       <div className="detail-layout">
@@ -221,7 +221,7 @@ export default function CreateBusinessPage() {
                   style={{ width: '100%' }}
                   disabled={submitting}
                 >
-                  {submitting ? 'Factoring Invoice...' : 'Factor Invoice'}
+                  {submitting ? 'Creating Campaign...' : 'Create Campaign'}
                 </button>
               </form>
             )}
