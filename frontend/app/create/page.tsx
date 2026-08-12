@@ -88,8 +88,13 @@ export default function CreateBusinessPage() {
 
       // 2. Blockchain Transaction
       const mintKeypair = Keypair.generate();
+      
+      // Generate a unique ID (timestamp in ms) to allow multiple campaigns per wallet
+      const id = Date.now();
+      const idBN = new BN(id);
+
       const [businessPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('business'), publicKey.toBuffer()],
+        [Buffer.from('business'), publicKey.toBuffer(), idBN.toArrayLike(Buffer, 'le', 8)],
         PROGRAM_ID
       );
 
@@ -97,7 +102,7 @@ export default function CreateBusinessPage() {
       const totalTokensBN = new BN(tokens * 1e6); // 6 decimals
 
       const tx = await program.methods
-        .initializeBusiness(fundingGoalBN, equity, totalTokensBN)
+        .initializeBusiness(idBN, fundingGoalBN, equity, totalTokensBN)
         .accounts({
           owner: publicKey,
           businessState: businessPda,

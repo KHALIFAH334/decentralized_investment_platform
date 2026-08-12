@@ -34,6 +34,7 @@ pub mod decentralized_investment_platform {
     /// with TransferFeeConfig (protocol monetization) and PermanentDelegate (compliance).
     pub fn initialize_business(
         ctx: Context<InitializeBusiness>,
+        id: u64,
         funding_goal: u64,
         equity_percentage: u8,
         total_equity_tokens: u64,
@@ -112,6 +113,7 @@ pub mod decentralized_investment_platform {
 
         // --- Step 5: Populate the business state PDA ---
         let business_state = &mut ctx.accounts.business_state;
+        business_state.id = id;
         business_state.owner = ctx.accounts.owner.key();
         business_state.funding_goal = funding_goal;
         business_state.equity_percentage = equity_percentage;
@@ -177,9 +179,11 @@ pub mod decentralized_investment_platform {
 
         // Mint equity tokens to the investor's token account
         // The business_state PDA is the mint authority, so we need signer seeds
+        let id_bytes = ctx.accounts.business_state.id.to_le_bytes();
         let signer_seeds: &[&[&[u8]]] = &[&[
             b"business",
             owner_key.as_ref(),
+            &id_bytes,
             &[bump],
         ]];
 
@@ -355,6 +359,7 @@ pub mod decentralized_investment_platform {
 // ============================================================================
 
 #[derive(Accounts)]
+#[instruction(id: u64)]
 pub struct InitializeBusiness<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -363,7 +368,7 @@ pub struct InitializeBusiness<'info> {
         init,
         payer = owner,
         space = 8 + BusinessState::INIT_SPACE,
-        seeds = [b"business", owner.key().as_ref()],
+        seeds = [b"business", owner.key().as_ref(), &id.to_le_bytes()],
         bump
     )]
     pub business_state: Account<'info, BusinessState>,
@@ -385,7 +390,7 @@ pub struct Invest<'info> {
 
     #[account(
         mut,
-        seeds = [b"business", business_state.owner.as_ref()],
+        seeds = [b"business", business_state.owner.as_ref(), &business_state.id.to_le_bytes()],
         bump = business_state.bump,
     )]
     pub business_state: Account<'info, BusinessState>,
@@ -422,7 +427,7 @@ pub struct WithdrawFunds<'info> {
 
     #[account(
         mut,
-        seeds = [b"business", owner.key().as_ref()],
+        seeds = [b"business", owner.key().as_ref(), &business_state.id.to_le_bytes()],
         bump = business_state.bump,
     )]
     pub business_state: Account<'info, BusinessState>,
@@ -439,7 +444,7 @@ pub struct DistributeDividends<'info> {
     pub owner: Signer<'info>,
 
     #[account(
-        seeds = [b"business", owner.key().as_ref()],
+        seeds = [b"business", owner.key().as_ref(), &business_state.id.to_le_bytes()],
         bump = business_state.bump,
     )]
     pub business_state: Account<'info, BusinessState>,
@@ -474,7 +479,7 @@ pub struct CloseBusiness<'info> {
 
     #[account(
         mut,
-        seeds = [b"business", owner.key().as_ref()],
+        seeds = [b"business", owner.key().as_ref(), &business_state.id.to_le_bytes()],
         bump = business_state.bump,
     )]
     pub business_state: Account<'info, BusinessState>,
@@ -487,7 +492,7 @@ pub struct RefundInvestment<'info> {
 
     #[account(
         mut,
-        seeds = [b"business", business_state.owner.as_ref()],
+        seeds = [b"business", business_state.owner.as_ref(), &business_state.id.to_le_bytes()],
         bump = business_state.bump,
     )]
     pub business_state: Account<'info, BusinessState>,
@@ -516,6 +521,8 @@ pub struct RefundInvestment<'info> {
 #[account]
 #[derive(InitSpace)]
 pub struct BusinessState {
+    /// The unique ID (timestamp) of the business listing
+    pub id: u64,                  // 8
     /// The wallet address of the business owner
     pub owner: Pubkey,            // 32
     /// Funding goal in lamports

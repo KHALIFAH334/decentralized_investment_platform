@@ -50,6 +50,11 @@
               {
                 "kind": "account",
                 "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
               }
             ]
           }
@@ -100,6 +105,11 @@
               {
                 "kind": "account",
                 "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
               }
             ]
           }
@@ -232,6 +242,10 @@
               {
                 "kind": "account",
                 "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
               }
             ]
           }
@@ -254,6 +268,10 @@
         }
       ],
       "args": [
+        {
+          "name": "id",
+          "type": "u64"
+        },
         {
           "name": "funding_goal",
           "type": "u64"
@@ -312,6 +330,11 @@
               {
                 "kind": "account",
                 "path": "business_state.owner",
+                "account": "BusinessState"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
                 "account": "BusinessState"
               }
             ]
@@ -402,6 +425,126 @@
       ]
     },
     {
+      "name": "refund_investment",
+      "docs": [
+        "Allows an investor to refund their investment if the business was closed",
+        "without reaching its funding goal."
+      ],
+      "discriminator": [
+        235,
+        4,
+        250,
+        47,
+        166,
+        80,
+        39,
+        112
+      ],
+      "accounts": [
+        {
+          "name": "investor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_state.owner",
+                "account": "BusinessState"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "equity_mint",
+          "writable": true
+        },
+        {
+          "name": "investor_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "investor"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "equity_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "withdraw_funds",
       "docs": [
         "Business owner withdraws raised SOL after funding goal is met."
@@ -443,6 +586,11 @@
               {
                 "kind": "account",
                 "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
               }
             ]
           }
@@ -555,6 +703,16 @@
       "code": 6015,
       "name": "Unauthorized",
       "msg": "You are not authorized to perform this action"
+    },
+    {
+      "code": 6016,
+      "name": "BusinessNotClosed",
+      "msg": "Business is not closed"
+    },
+    {
+      "code": 6017,
+      "name": "RefundTooSmall",
+      "msg": "Refund amount too small"
     }
   ],
   "types": [
@@ -563,6 +721,13 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "id",
+            "docs": [
+              "The unique ID (timestamp) of the business listing"
+            ],
+            "type": "u64"
+          },
           {
             "name": "owner",
             "docs": [
