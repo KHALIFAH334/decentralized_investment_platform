@@ -15,6 +15,7 @@ export interface BusinessData {
   isClosed: boolean;
   mintKey: string;
   bump: number;
+  fundingDeadline: number;
 }
 
 export function useBusinesses() {
@@ -24,26 +25,27 @@ export function useBusinesses() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!program) { setLoading(false); return; }
     try {
       setLoading(true);
-      const accounts = await program.account.businessState.all();
-      const data = accounts.map((acc: any) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const accounts = await (program.account as any).businessState.all();
+      const data: BusinessData[] = accounts.map((acc: { publicKey: { toBase58(): string }; account: Record<string, unknown> }) => ({
         publicKey: acc.publicKey.toBase58(),
-        owner: acc.account.owner.toBase58(),
-        fundingGoal: acc.account.fundingGoal.toNumber(),
-        totalRaised: acc.account.totalRaised.toNumber(),
-        equityPercentage: acc.account.equityPercentage,
-        totalEquityTokens: acc.account.totalEquityTokens.toNumber(),
-        isFunded: acc.account.isFunded,
-        isClosed: acc.account.isClosed,
-        mintKey: acc.account.mintKey.toBase58(),
-        bump: acc.account.bump,
+        owner: (acc.account.owner as { toBase58(): string }).toBase58(),
+        fundingGoal: Number(acc.account.fundingGoal),
+        totalRaised: Number(acc.account.totalRaised),
+        equityPercentage: acc.account.equityPercentage as number,
+        totalEquityTokens: Number(acc.account.totalEquityTokens),
+        isFunded: acc.account.isFunded as boolean,
+        isClosed: acc.account.isClosed as boolean,
+        mintKey: (acc.account.mintKey as { toBase58(): string }).toBase58(),
+        bump: acc.account.bump as number,
+        fundingDeadline: Number(acc.account.fundingDeadline),
       }));
       setBusinesses(data);
       setError(null);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {
       setLoading(false);
     }

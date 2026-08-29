@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import ClientProviders from '../src/components/ClientProviders';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' });
@@ -16,7 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${inter.variable} ${jetbrainsMono.variable} ${inter.className}`}>
         <ClientProviders>
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </ClientProviders>
       </body>
     </html>

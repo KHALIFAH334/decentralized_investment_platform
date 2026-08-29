@@ -1,10 +1,45 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useBusinesses } from '../src/hooks/useBusinesses';
+import { LAMPORTS_PER_SOL } from '../src/lib/format';
 
 export default function LandingPage() {
   const [sliderValue, setSliderValue] = useState(50);
+  const { businesses, loading } = useBusinesses();
+
+  const stats = useMemo(() => {
+    if (loading || businesses.length === 0) {
+      return { totalRaised: '...', activeListings: '...', funding: '...', totalTokens: '...' };
+    }
+    
+    const totalRaisedLamports = businesses.reduce((acc, b) => acc + b.totalRaised, 0);
+    const totalRaisedSol = (totalRaisedLamports / LAMPORTS_PER_SOL).toFixed(1);
+    
+    const activeCount = businesses.filter(b => !b.isClosed).length;
+    const fundingCount = businesses.filter(b => !b.isClosed && !b.isFunded).length;
+    
+    // totalTokens are stored with 6 decimals in the state/metadata, but let's just sum and format for display
+    const totalTokensRaw = businesses.reduce((acc, b) => acc + b.totalEquityTokens, 0);
+    // Assuming 6 decimals, divided by 1M gives full tokens. Then formatted to millions for display if very large.
+    // However, the input in create page is already raw token count which is then multiplied by 1e6 before sending to program.
+    // In useBusinesses, totalEquityTokens is the raw BN value. Let's convert back.
+    const fullTokens = totalTokensRaw / 1e6;
+    let tokensDisplay = fullTokens.toLocaleString();
+    if (fullTokens >= 1_000_000) {
+      tokensDisplay = (fullTokens / 1_000_000).toFixed(1) + 'M';
+    } else if (fullTokens >= 1_000) {
+      tokensDisplay = (fullTokens / 1_000).toFixed(1) + 'K';
+    }
+
+    return {
+      totalRaised: `${totalRaisedSol} SOL`,
+      activeListings: activeCount.toString(),
+      funding: `${fundingCount} funding`,
+      totalTokens: `${tokensDisplay} tokens`
+    };
+  }, [businesses, loading]);
 
   return (
     <div className="container">
@@ -20,17 +55,17 @@ export default function LandingPage() {
       <div className="stat-ticker">
         <div className="stat-ticker-item">
           <div className="stat-ticker-label">TOTAL RAISED</div>
-          <div className="stat-ticker-value mono">127.4 SOL</div>
-          <div className="stat-ticker-sub">+12.3 this week</div>
+          <div className="stat-ticker-value mono">{stats.totalRaised}</div>
+          <div className="stat-ticker-sub">Real-time on-chain</div>
         </div>
         <div className="stat-ticker-item">
           <div className="stat-ticker-label">ACTIVE LISTINGS</div>
-          <div className="stat-ticker-value mono">24</div>
-          <div className="stat-ticker-sub">8 funding</div>
+          <div className="stat-ticker-value mono">{stats.activeListings}</div>
+          <div className="stat-ticker-sub">{stats.funding}</div>
         </div>
         <div className="stat-ticker-item">
           <div className="stat-ticker-label">YIELD ASSETS DISTRIBUTED</div>
-          <div className="stat-ticker-value mono">2.4M tokens</div>
+          <div className="stat-ticker-value mono">{stats.totalTokens}</div>
           <div className="stat-ticker-sub">Token-2022</div>
         </div>
         <div className="stat-ticker-item">
@@ -51,15 +86,10 @@ export default function LandingPage() {
               <div className="flashcard-title">The Debt Tokenizer</div>
               <div className="flashcard-desc">Token-2022 minting turns your company's unpaid invoices into tradable, fractional yield assets directly on-chain.</div>
             </div>
-            <div className="flashcard-back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-              <pre className="mono" style={{ fontSize: '0.75rem', textAlign: 'left', whiteSpace: 'pre-wrap', overflowX: 'hidden' }}>
-                <code>{`pub fn initialize_business(
-  ctx: Context<InitBusiness>,
-  funding_goal: u64,
-  equity_pct: u8,
-  total_tokens: u64,
-) -> Result<()>`}</code>
-              </pre>
+            <div className="flashcard-back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                Smart contracts automatically handle the tokenization, escrow, and dividend distribution without intermediaries.
+              </div>
             </div>
           </div>
         </div>

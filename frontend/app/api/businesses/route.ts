@@ -16,6 +16,8 @@ import {
   sanitizeBusinessPayload,
 } from '../../../src/lib/validation';
 
+import { verifyWalletSignature } from '../../../src/lib/verifySignature';
+
 /**
  * GET /api/businesses
  * Returns all businesses from Supabase.
@@ -23,7 +25,7 @@ import {
  */
 export async function GET(request: NextRequest) {
   // Rate limit check
-  const limited = rateLimitResponse(request, RATE_LIMITS.READ);
+  const limited = await rateLimitResponse(request, RATE_LIMITS.READ);
   if (limited) return limited;
 
   try {
@@ -57,29 +59,19 @@ export async function GET(request: NextRequest) {
  * Security layers:
  * 1. Rate limited (5 req/min per IP)
  * 2. Input validation (all fields checked)
- * 3. Input sanitization (HTML stripped)
- * 4. Parameterized query (Supabase SDK)
- * 5. Server-side only (service_role key)
- *
- * Expected body:
- * {
- *   id: string,           // PDA address from Solana
- *   owner: string,        // Wallet address of creator
- *   name: string,
- *   description?: string,
- *   category?: string,
- *   image_url?: string,
- *   website_url?: string
- * }
+ * 3. Signature verification (cryptographic proof)
+ * 4. Input sanitization (HTML stripped)
+ * 5. Parameterized query (Supabase SDK)
+ * 6. Server-side only (service_role key)
  */
 export async function POST(request: NextRequest) {
   // 1. Rate limit check
-  const limited = rateLimitResponse(request, RATE_LIMITS.WRITE);
+  const limited = await rateLimitResponse(request, RATE_LIMITS.WRITE);
   if (limited) return limited;
 
   try {
     // 2. Parse body
-    let body: Record<string, unknown>;
+    let body: Record<string, any>;
     try {
       body = await request.json();
     } catch {
@@ -89,8 +81,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Extract signature fields
+    const { signature, message, ...payload } = body;
+
+    if (!signature || !message || typeof signature !== 'string' || typeof message !== 'string') {
+      return NextResponse.json(
+        { error: 'Missing or invalid signature parameters' },
+        { status: 401 }
+      );
+    }
+
     // 3. Validate inputs
-    const validationError = validateBusinessPayload(body);
+    const validationError = validateBusinessPayload(payload);
     if (validationError) {
       return NextResponse.json(
         { error: validationError },
@@ -98,8 +100,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Sanitize all string fields
-    const sanitized = sanitizeBusinessPayload(body);
+    // 4. Verify cryptographic signature
+    // The signer must be the owner of the business profile
+    if (!verifyWalletSignature(message, signature, payload.owner as string)) {
+      return NextResponse.json(
+        { error: 'Invalid wallet signature' },
+        { status: 401 }
+      );
+    }
+
+    // Ensure the message matches the expected format to prevent replay attacks
+    const expectedMessage = `Create business: ${payload.id}`;
+    if (message !== expectedMessage) {
+      return NextResponse.json(
+        { error: 'Signature message mismatch' },
+        { status: 401 }
+      );
+    }
+
+    // 5. Sanitize all string fields
+    const sanitized = sanitizeBusinessPayload(payload);
 
     // 5. Insert via admin client (parameterized by Supabase SDK)
     const { data, error } = await supabaseAdmin

@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+    "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts",
+    "test:frontend": "cd frontend && npm test"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",

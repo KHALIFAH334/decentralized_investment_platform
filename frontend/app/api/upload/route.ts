@@ -20,8 +20,8 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 
 export async function POST(request: NextRequest) {
-  // 1. Rate limit check
-  const limited = rateLimitResponse(request, RATE_LIMITS.UPLOAD);
+  // Rate limit check
+  const limited = await rateLimitResponse(request, RATE_LIMITS.UPLOAD);
   if (limited) return limited;
 
   try {

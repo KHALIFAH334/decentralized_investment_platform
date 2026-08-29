@@ -8,6 +8,62 @@
   },
   "instructions": [
     {
+      "name": "auto_close",
+      "docs": [
+        "Auto-closes a business after its funding deadline has expired without",
+        "reaching the funding goal. Callable by ANYONE — no owner cooperation needed.",
+        "This is what makes refunds \"automatic\" per the documentation."
+      ],
+      "discriminator": [
+        62,
+        222,
+        80,
+        238,
+        198,
+        142,
+        139,
+        165
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "business_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_state.owner",
+                "account": "BusinessState"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "close_business",
       "docs": [
         "Gracefully closes a business. Can only be called by the owner.",
@@ -50,6 +106,11 @@
               {
                 "kind": "account",
                 "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
               }
             ]
           }
@@ -100,6 +161,11 @@
               {
                 "kind": "account",
                 "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
               }
             ]
           }
@@ -189,6 +255,131 @@
       ]
     },
     {
+      "name": "harvest_fees",
+      "docs": [
+        "Harvests accumulated transfer fees from token accounts and withdraws",
+        "them to the business owner. Completes the protocol monetization pipeline."
+      ],
+      "discriminator": [
+        90,
+        149,
+        158,
+        241,
+        163,
+        186,
+        155,
+        202
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "equity_mint",
+          "writable": true
+        },
+        {
+          "name": "fee_destination",
+          "docs": [
+            "The token account to receive harvested fees (owner's ATA)."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "equity_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initialize_business",
       "docs": [
         "Initializes a new business listing on the platform.",
@@ -232,6 +423,10 @@
               {
                 "kind": "account",
                 "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
               }
             ]
           }
@@ -255,6 +450,10 @@
       ],
       "args": [
         {
+          "name": "id",
+          "type": "u64"
+        },
+        {
           "name": "funding_goal",
           "type": "u64"
         },
@@ -265,6 +464,10 @@
         {
           "name": "total_equity_tokens",
           "type": "u64"
+        },
+        {
+          "name": "funding_deadline",
+          "type": "i64"
         }
       ]
     },
@@ -312,6 +515,11 @@
               {
                 "kind": "account",
                 "path": "business_state.owner",
+                "account": "BusinessState"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
                 "account": "BusinessState"
               }
             ]
@@ -402,6 +610,126 @@
       ]
     },
     {
+      "name": "refund_investment",
+      "docs": [
+        "Allows an investor to refund their investment if the business was closed",
+        "without reaching its funding goal."
+      ],
+      "discriminator": [
+        235,
+        4,
+        250,
+        47,
+        166,
+        80,
+        39,
+        112
+      ],
+      "accounts": [
+        {
+          "name": "investor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_state.owner",
+                "account": "BusinessState"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "equity_mint",
+          "writable": true
+        },
+        {
+          "name": "investor_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "investor"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "equity_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "withdraw_funds",
       "docs": [
         "Business owner withdraws raised SOL after funding goal is met."
@@ -443,6 +771,11 @@
               {
                 "kind": "account",
                 "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "business_state.id",
+                "account": "BusinessState"
               }
             ]
           }
@@ -472,6 +805,73 @@
         249,
         177,
         115
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "BusinessClosedEvent",
+      "discriminator": [
+        73,
+        123,
+        136,
+        78,
+        3,
+        140,
+        189,
+        81
+      ]
+    },
+    {
+      "name": "BusinessInitialized",
+      "discriminator": [
+        165,
+        8,
+        188,
+        170,
+        84,
+        188,
+        149,
+        113
+      ]
+    },
+    {
+      "name": "DividendDistributed",
+      "discriminator": [
+        188,
+        247,
+        85,
+        115,
+        23,
+        100,
+        212,
+        49
+      ]
+    },
+    {
+      "name": "InvestmentMade",
+      "discriminator": [
+        24,
+        137,
+        204,
+        98,
+        233,
+        3,
+        108,
+        190
+      ]
+    },
+    {
+      "name": "RefundProcessed",
+      "discriminator": [
+        203,
+        88,
+        236,
+        233,
+        192,
+        178,
+        57,
+        161
       ]
     }
   ],
@@ -555,14 +955,86 @@
       "code": 6015,
       "name": "Unauthorized",
       "msg": "You are not authorized to perform this action"
+    },
+    {
+      "code": 6016,
+      "name": "BusinessNotClosed",
+      "msg": "Business is not closed"
+    },
+    {
+      "code": 6017,
+      "name": "RefundTooSmall",
+      "msg": "Refund amount too small"
+    },
+    {
+      "code": 6018,
+      "name": "DeadlineInPast",
+      "msg": "Funding deadline must be in the future"
+    },
+    {
+      "code": 6019,
+      "name": "DeadlineNotReached",
+      "msg": "Funding deadline has not been reached yet"
+    },
+    {
+      "code": 6020,
+      "name": "DeadlineExpired",
+      "msg": "Funding deadline has expired"
     }
   ],
   "types": [
+    {
+      "name": "BusinessClosedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pda",
+            "type": "pubkey"
+          },
+          {
+            "name": "auto_closed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BusinessInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pda",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "funding_goal",
+            "type": "u64"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          }
+        ]
+      }
+    },
     {
       "name": "BusinessState",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "id",
+            "docs": [
+              "The unique ID (timestamp) of the business listing"
+            ],
+            "type": "u64"
+          },
           {
             "name": "owner",
             "docs": [
@@ -625,6 +1097,89 @@
               "The equity token mint address"
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "funding_deadline",
+            "docs": [
+              "Unix timestamp after which the campaign expires"
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DividendDistributed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "business_pda",
+            "type": "pubkey"
+          },
+          {
+            "name": "investor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InvestmentMade",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "business_pda",
+            "type": "pubkey"
+          },
+          {
+            "name": "investor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "tokens_minted",
+            "type": "u64"
+          },
+          {
+            "name": "total_raised",
+            "type": "u64"
+          },
+          {
+            "name": "is_funded",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RefundProcessed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "business_pda",
+            "type": "pubkey"
+          },
+          {
+            "name": "investor",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokens_burned",
+            "type": "u64"
+          },
+          {
+            "name": "lamports_refunded",
+            "type": "u64"
           }
         ]
       }

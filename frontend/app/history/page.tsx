@@ -4,10 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { useBusinesses } from '../../src/hooks/useBusinesses';
 import { useAllBusinessMetadata } from '../../src/hooks/useBusinessMetadata';
+import { truncateAddress } from '../../src/lib/format';
 
-function truncateAddress(addr: string): string {
-  return `${addr.slice(0, 6)}...${addr.slice(-6)}`;
-}
 
 export default function HistoryPage() {
   const { businesses, loading, error } = useBusinesses();

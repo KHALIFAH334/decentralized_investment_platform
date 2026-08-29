@@ -4,10 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { useBusinesses } from '../../src/hooks/useBusinesses';
 import { useAllBusinessMetadata } from '../../src/hooks/useBusinessMetadata';
+import { truncateAddress } from '../../src/lib/format';
 
-function truncateAddress(addr: string): string {
-  return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
-}
 
 export default function MarketplacePage() {
   const { businesses, loading, error } = useBusinesses();

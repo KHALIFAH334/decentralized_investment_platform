@@ -11,7 +11,6 @@ export interface BusinessMetadata {
   category: string;
   image_url: string;
   website_url: string;
-  is_approved?: boolean;
 }
 
 export function useAllBusinessMetadata() {
@@ -31,8 +30,8 @@ export function useAllBusinessMetadata() {
         });
       }
       setMetadata(map);
-    } catch (err: any) {
-      console.error('Error fetching metadata:', err?.message || JSON.stringify(err) || err);
+    } catch (err: unknown) {
+      console.error('Error fetching metadata:', err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -63,8 +62,8 @@ export function useBusinessMetadata(id: string | null) {
         console.error('Error fetching business:', error?.message || JSON.stringify(error) || error);
       }
       setData(data as BusinessMetadata || null);
-    } catch (err: any) {
-      console.error('Exception fetching business:', err?.message || JSON.stringify(err) || err);
+    } catch (err: unknown) {
+      console.error('Exception fetching business:', err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }

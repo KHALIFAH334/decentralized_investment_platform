@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { BN } from '@coral-xyz/anchor';
+import type { DipProgram, AnchorWallet } from '../types/program';
 
 interface BusinessDetail {
   publicKey: string;
@@ -19,8 +20,8 @@ interface BusinessDetail {
 
 interface InvestmentSidebarProps {
   business: BusinessDetail;
-  program: any;
-  wallet: any;
+  program: DipProgram;
+  wallet: AnchorWallet;
   onSuccess: () => void;
   showToast: (type: string, message: string) => void;
 }
@@ -76,8 +77,8 @@ export function InvestmentSidebar({ business, program, wallet, onSuccess, showTo
       showToast('success', `Investment successful! TX: ${tx.slice(0, 12)}...`);
       setInvestAmount('');
       onSuccess();
-    } catch (e: any) {
-      showToast('error', e.message || 'Transaction failed');
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Transaction failed');
     } finally {
       setSubmitting(false);
     }

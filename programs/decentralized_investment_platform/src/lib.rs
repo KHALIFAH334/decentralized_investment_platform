@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{create_account, CreateAccount};
 use anchor_spl::token_interface::{
@@ -38,6 +39,7 @@ pub mod decentralized_investment_platform {
         funding_goal: u64,
         equity_percentage: u8,
         total_equity_tokens: u64,
+        funding_deadline: i64,
     ) -> Result<()> {
         require!(funding_goal > 0, DipError::InvalidFundingGoal);
         require!(
@@ -45,6 +47,10 @@ pub mod decentralized_investment_platform {
             DipError::InvalidEquityPercentage
         );
         require!(total_equity_tokens > 0, DipError::InvalidTokenSupply);
+
+        // Validate deadline is in the future
+        let clock = Clock::get()?;
+        require!(funding_deadline > clock.unix_timestamp, DipError::DeadlineInPast);
 
         // --- Step 1: Create the mint account with space for extensions ---
         let extensions = &[
@@ -86,12 +92,12 @@ pub mod decentralized_investment_platform {
             &[ctx.accounts.equity_mint.to_account_info()],
         )?;
 
-        // --- Step 3: Initialize PermanentDelegate extension ---
+        // --- Step 3: Initialize PermanentDelegate extension (delegate = PDA for trustless compliance) ---
         let ix_permanent_delegate =
             spl_token_2022::instruction::initialize_permanent_delegate(
                 &ctx.accounts.token_program.key(),
                 &ctx.accounts.equity_mint.key(),
-                &ctx.accounts.owner.key(),  // delegate
+                &ctx.accounts.business_state.key(),  // delegate = PDA (trustless)
             )?;
         anchor_lang::solana_program::program::invoke(
             &ix_permanent_delegate,
@@ -123,13 +129,22 @@ pub mod decentralized_investment_platform {
         business_state.is_closed = false;
         business_state.bump = ctx.bumps.business_state;
         business_state.mint_key = ctx.accounts.equity_mint.key();
+        business_state.funding_deadline = funding_deadline;
 
         msg!(
-            "Business initialized! Goal: {} lamports, Equity: {}%, Tokens: {}",
+            "Business initialized! Goal: {} lamports, Equity: {}%, Tokens: {}, Deadline: {}",
             funding_goal,
             equity_percentage,
-            total_equity_tokens
+            total_equity_tokens,
+            funding_deadline
         );
+
+        emit!(BusinessInitialized {
+            pda: business_state.key(),
+            owner: ctx.accounts.owner.key(),
+            funding_goal,
+            deadline: funding_deadline,
+        });
 
         Ok(())
     }
@@ -146,10 +161,15 @@ pub mod decentralized_investment_platform {
         let total_equity_tokens = ctx.accounts.business_state.total_equity_tokens;
         let owner_key = ctx.accounts.business_state.owner;
         let bump = ctx.accounts.business_state.bump;
+        let funding_deadline = ctx.accounts.business_state.funding_deadline;
 
         require!(!is_closed, DipError::BusinessClosed);
         require!(!is_funded, DipError::AlreadyFunded);
         require!(amount_lamports > 0, DipError::InvalidInvestmentAmount);
+
+        // Reject investments after the funding deadline
+        let clock = Clock::get()?;
+        require!(clock.unix_timestamp < funding_deadline, DipError::DeadlineExpired);
 
         // Check that the investment doesn't exceed the funding goal
         let remaining = funding_goal
@@ -204,7 +224,8 @@ pub mod decentralized_investment_platform {
             .checked_add(actual_investment)
             .ok_or(DipError::Overflow)?;
 
-        if business_state.total_raised >= business_state.funding_goal {
+        let now_funded = business_state.total_raised >= business_state.funding_goal;
+        if now_funded {
             business_state.is_funded = true;
             msg!("Business is fully funded!");
         }
@@ -216,6 +237,15 @@ pub mod decentralized_investment_platform {
             business_state.total_raised,
             business_state.funding_goal
         );
+
+        emit!(InvestmentMade {
+            business_pda: business_state.key(),
+            investor: ctx.accounts.investor.key(),
+            amount_lamports: actual_investment,
+            tokens_minted: tokens_to_mint,
+            total_raised: business_state.total_raised,
+            is_funded: now_funded,
+        });
 
         Ok(())
     }
@@ -294,6 +324,12 @@ pub mod decentralized_investment_platform {
             total_supply
         );
 
+        emit!(DividendDistributed {
+            business_pda: business_state.key(),
+            investor: ctx.accounts.investor.key(),
+            amount_lamports: share,
+        });
+
         Ok(())
     }
 
@@ -306,6 +342,38 @@ pub mod decentralized_investment_platform {
         business_state.is_closed = true;
 
         msg!("Business closed by owner. No further investments accepted.");
+
+        emit!(BusinessClosedEvent {
+            pda: business_state.key(),
+            auto_closed: false,
+        });
+
+        Ok(())
+    }
+
+    /// Auto-closes a business after its funding deadline has expired without
+    /// reaching the funding goal. Callable by ANYONE — no owner cooperation needed.
+    /// This is what makes refunds "automatic" per the documentation.
+    pub fn auto_close(ctx: Context<AutoClose>) -> Result<()> {
+        let clock = Clock::get()?;
+        let business_state = &mut ctx.accounts.business_state;
+
+        require!(!business_state.is_closed, DipError::BusinessClosed);
+        require!(!business_state.is_funded, DipError::AlreadyFunded);
+        require!(
+            clock.unix_timestamp >= business_state.funding_deadline,
+            DipError::DeadlineNotReached
+        );
+
+        business_state.is_closed = true;
+
+        msg!("Business auto-closed: funding deadline expired without reaching goal.");
+
+        emit!(BusinessClosedEvent {
+            pda: business_state.key(),
+            auto_closed: true,
+        });
+
         Ok(())
     }
 
@@ -349,6 +417,67 @@ pub mod decentralized_investment_platform {
         ctx.accounts.investor.add_lamports(refund_amount)?;
 
         msg!("Refund successful: {} tokens burned, {} lamports refunded", investor_token_balance, refund_amount);
+
+        emit!(RefundProcessed {
+            business_pda: business_state.key(),
+            investor: ctx.accounts.investor.key(),
+            tokens_burned: investor_token_balance,
+            lamports_refunded: refund_amount,
+        });
+
+        Ok(())
+    }
+
+    /// Harvests accumulated transfer fees from token accounts and withdraws
+    /// them to the business owner. Completes the protocol monetization pipeline.
+    pub fn harvest_fees<'a>(ctx: Context<'a, HarvestFees<'a>>) -> Result<()> {
+        let business_state = &ctx.accounts.business_state;
+        let owner_key = business_state.owner;
+        let id_bytes = business_state.id.to_le_bytes();
+        let bump = business_state.bump;
+
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            b"business",
+            owner_key.as_ref(),
+            &id_bytes,
+            &[bump],
+        ]];
+
+        // Step 1: Harvest withheld tokens from all provided token accounts to the mint
+        let source_pubkeys: Vec<&Pubkey> = ctx.remaining_accounts.iter().map(|a| a.key).collect();
+        let harvest_ix = spl_token_2022::extension::transfer_fee::instruction::harvest_withheld_tokens_to_mint(
+            &ctx.accounts.token_program.key(),
+            &ctx.accounts.equity_mint.key(),
+            &source_pubkeys,
+        )?;
+        anchor_lang::solana_program::program::invoke_signed(
+            &harvest_ix,
+            &{
+                let mut accounts = vec![ctx.accounts.equity_mint.to_account_info()];
+                accounts.extend(ctx.remaining_accounts.iter().map(|a| a.to_account_info()));
+                accounts
+            },
+            signer_seeds,
+        )?;
+
+        // Step 2: Withdraw the accumulated fees from the mint to the owner's token account
+        let withdraw_ix = spl_token_2022::extension::transfer_fee::instruction::withdraw_withheld_tokens_from_mint(
+            &ctx.accounts.token_program.key(),
+            &ctx.accounts.equity_mint.key(),
+            &ctx.accounts.fee_destination.key(),
+            &ctx.accounts.owner.key(),  // withdraw_withheld_authority = owner
+            &[],
+        )?;
+        anchor_lang::solana_program::program::invoke(
+            &withdraw_ix,
+            &[
+                ctx.accounts.equity_mint.to_account_info(),
+                ctx.accounts.fee_destination.to_account_info(),
+                ctx.accounts.owner.to_account_info(),
+            ],
+        )?;
+
+        msg!("Transfer fees harvested and withdrawn to owner.");
 
         Ok(())
     }
@@ -485,6 +614,21 @@ pub struct CloseBusiness<'info> {
     pub business_state: Account<'info, BusinessState>,
 }
 
+/// Auto-close context — does NOT require the owner as signer.
+/// Anyone (including the investor themselves) can trigger this after the deadline.
+#[derive(Accounts)]
+pub struct AutoClose<'info> {
+    /// CHECK: The caller does not need to be the owner — anyone can auto-close.
+    pub caller: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"business", business_state.owner.as_ref(), &business_state.id.to_le_bytes()],
+        bump = business_state.bump,
+    )]
+    pub business_state: Account<'info, BusinessState>,
+}
+
 #[derive(Accounts)]
 pub struct RefundInvestment<'info> {
     #[account(mut)]
@@ -514,6 +658,39 @@ pub struct RefundInvestment<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
+#[derive(Accounts)]
+pub struct HarvestFees<'info> {
+    #[account(
+        mut,
+        constraint = owner.key() == business_state.owner @ DipError::Unauthorized
+    )]
+    pub owner: Signer<'info>,
+
+    #[account(
+        seeds = [b"business", owner.key().as_ref(), &business_state.id.to_le_bytes()],
+        bump = business_state.bump,
+    )]
+    pub business_state: Account<'info, BusinessState>,
+
+    #[account(
+        mut,
+        address = business_state.mint_key,
+    )]
+    pub equity_mint: InterfaceAccount<'info, Mint>,
+
+    /// The token account to receive harvested fees (owner's ATA).
+    #[account(
+        mut,
+        associated_token::mint = equity_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program,
+    )]
+    pub fee_destination: InterfaceAccount<'info, TokenAccount>,
+
+    pub token_program: Interface<'info, TokenInterface>,
+    pub associated_token_program: Program<'info, anchor_spl::associated_token::AssociatedToken>,
+}
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -541,6 +718,8 @@ pub struct BusinessState {
     pub bump: u8,                 // 1
     /// The equity token mint address
     pub mint_key: Pubkey,         // 32
+    /// Unix timestamp after which the campaign expires
+    pub funding_deadline: i64,    // 8
 }
 
 // ============================================================================
@@ -585,4 +764,53 @@ pub enum DipError {
     BusinessNotClosed,
     #[msg("Refund amount too small")]
     RefundTooSmall,
+    #[msg("Funding deadline must be in the future")]
+    DeadlineInPast,
+    #[msg("Funding deadline has not been reached yet")]
+    DeadlineNotReached,
+    #[msg("Funding deadline has expired")]
+    DeadlineExpired,
+}
+
+// ============================================================================
+// EVENTS
+// ============================================================================
+
+#[event]
+pub struct BusinessInitialized {
+    pub pda: Pubkey,
+    pub owner: Pubkey,
+    pub funding_goal: u64,
+    pub deadline: i64,
+}
+
+#[event]
+pub struct InvestmentMade {
+    pub business_pda: Pubkey,
+    pub investor: Pubkey,
+    pub amount_lamports: u64,
+    pub tokens_minted: u64,
+    pub total_raised: u64,
+    pub is_funded: bool,
+}
+
+#[event]
+pub struct DividendDistributed {
+    pub business_pda: Pubkey,
+    pub investor: Pubkey,
+    pub amount_lamports: u64,
+}
+
+#[event]
+pub struct RefundProcessed {
+    pub business_pda: Pubkey,
+    pub investor: Pubkey,
+    pub tokens_burned: u64,
+    pub lamports_refunded: u64,
+}
+
+#[event]
+pub struct BusinessClosedEvent {
+    pub pda: Pubkey,
+    pub auto_closed: bool,
 }

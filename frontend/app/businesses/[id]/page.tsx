@@ -39,19 +39,20 @@ export default function BusinessDetailPage() {
     try {
       setLoading(true);
       const pubkey = new PublicKey(id);
-      const account = await program.account.businessState.fetch(pubkey);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const account = await (program.account as any).businessState.fetch(pubkey) as Record<string, unknown>;
       setBusiness({
         publicKey: id,
-        owner: (account as any).owner.toBase58(),
-        fundingGoal: (account as any).fundingGoal.toNumber(),
-        totalRaised: (account as any).totalRaised.toNumber(),
-        equityPercentage: (account as any).equityPercentage,
-        totalEquityTokens: (account as any).totalEquityTokens.toNumber(),
-        isFunded: (account as any).isFunded,
-        isClosed: (account as any).isClosed,
-        mintKey: (account as any).mintKey.toBase58(),
+        owner: (account.owner as { toBase58(): string }).toBase58(),
+        fundingGoal: Number(account.fundingGoal),
+        totalRaised: Number(account.totalRaised),
+        equityPercentage: account.equityPercentage as number,
+        totalEquityTokens: Number(account.totalEquityTokens),
+        isFunded: account.isFunded as boolean,
+        isClosed: account.isClosed as boolean,
+        mintKey: (account.mintKey as { toBase58(): string }).toBase58(),
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
     } finally {
       setLoading(false);

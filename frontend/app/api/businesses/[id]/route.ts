@@ -19,6 +19,7 @@ import {
   isValidUrl,
   isValidCategory,
 } from '../../../../src/lib/validation';
+import { verifyWalletSignature } from '../../../../src/lib/verifySignature';
 
 /**
  * GET /api/businesses/[id]
@@ -28,7 +29,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const limited = rateLimitResponse(request, RATE_LIMITS.READ);
+  const limited = await rateLimitResponse(request, RATE_LIMITS.READ);
   if (limited) return limited;
 
   const { id } = await params;
@@ -82,6 +83,8 @@ export async function GET(
  * Expected body:
  * {
  *   wallet: string,          // Caller's wallet (for ownership verification)
+ *   signature: string,       // Cryptographic signature
+ *   message: string,         // Signed message
  *   name?: string,
  *   description?: string,
  *   category?: string,
@@ -93,7 +96,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const limited = rateLimitResponse(request, RATE_LIMITS.WRITE);
+  const limited = await rateLimitResponse(request, RATE_LIMITS.WRITE);
   if (limited) return limited;
 
   const { id } = await params;
@@ -116,11 +119,33 @@ export async function PATCH(
       );
     }
 
-    const wallet = body.wallet;
+    const { wallet, signature, message } = body;
     if (!wallet || !isValidSolanaAddress(wallet)) {
       return NextResponse.json(
         { error: 'Missing or invalid wallet address for ownership verification' },
         { status: 400 }
+      );
+    }
+
+    if (!signature || !message || typeof signature !== 'string' || typeof message !== 'string') {
+      return NextResponse.json(
+        { error: 'Missing or invalid signature parameters' },
+        { status: 401 }
+      );
+    }
+
+    if (!verifyWalletSignature(message, signature, wallet as string)) {
+      return NextResponse.json(
+        { error: 'Invalid wallet signature' },
+        { status: 401 }
+      );
+    }
+
+    const expectedMessage = `Update business: ${id}`;
+    if (message !== expectedMessage) {
+      return NextResponse.json(
+        { error: 'Signature message mismatch' },
+        { status: 401 }
       );
     }
 
@@ -226,14 +251,16 @@ export async function PATCH(
  *
  * Expected body:
  * {
- *   wallet: string  // Caller's wallet for ownership verification
+ *   wallet: string,          // Caller's wallet for ownership verification
+ *   signature: string,       // Cryptographic signature
+ *   message: string          // Signed message
  * }
  */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const limited = rateLimitResponse(request, RATE_LIMITS.WRITE);
+  const limited = await rateLimitResponse(request, RATE_LIMITS.WRITE);
   if (limited) return limited;
 
   const { id } = await params;
@@ -256,11 +283,33 @@ export async function DELETE(
       );
     }
 
-    const wallet = body.wallet;
+    const { wallet, signature, message } = body;
     if (!wallet || !isValidSolanaAddress(wallet)) {
       return NextResponse.json(
         { error: 'Missing or invalid wallet address for ownership verification' },
         { status: 400 }
+      );
+    }
+
+    if (!signature || !message || typeof signature !== 'string' || typeof message !== 'string') {
+      return NextResponse.json(
+        { error: 'Missing or invalid signature parameters' },
+        { status: 401 }
+      );
+    }
+
+    if (!verifyWalletSignature(message, signature, wallet as string)) {
+      return NextResponse.json(
+        { error: 'Invalid wallet signature' },
+        { status: 401 }
+      );
+    }
+
+    const expectedMessage = `Delete business: ${id}`;
+    if (message !== expectedMessage) {
+      return NextResponse.json(
+        { error: 'Signature message mismatch' },
+        { status: 401 }
       );
     }
 

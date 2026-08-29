@@ -4,15 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import { BusinessData } from '../../src/hooks/useBusinesses';
 import { BusinessMetadata } from '../../src/hooks/useBusinessMetadata';
+import { truncateAddress } from '../lib/format';
 
 interface BusinessCardProps {
   business: BusinessData;
   metadata?: BusinessMetadata;
 }
 
-function truncateAddress(addr: string): string {
-  return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
-}
 
 export default function BusinessCard({ business, metadata }: BusinessCardProps) {
   const goalSol = business.fundingGoal / 1e9;

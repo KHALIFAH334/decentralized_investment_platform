@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '../../src/hooks/useProgram';
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL, Keypair } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { BN } from '@coral-xyz/anchor';
+import bs58 from 'bs58';
 
 const PROGRAM_ID = new PublicKey('5gEZHMQfMSKofq89gBkWPzwx7g1vy3d1pn8RJjRSkN4Z');
 
 export default function CreateBusinessPage() {
   const { program } = useProgram();
-  const { publicKey } = useWallet();
+  const { publicKey, signMessage } = useWallet();
   const [fundingGoal, setFundingGoal] = useState('');
   const [equityPercentage, setEquityPercentage] = useState('');
   const [totalTokens, setTotalTokens] = useState('');
@@ -88,7 +89,7 @@ export default function CreateBusinessPage() {
 
       // 2. Blockchain Transaction
       const mintKeypair = Keypair.generate();
-      
+
       // Generate a unique ID (timestamp in ms) to allow multiple campaigns per wallet
       const id = Date.now();
       const idBN = new BN(id);
@@ -113,8 +114,17 @@ export default function CreateBusinessPage() {
         .signers([mintKeypair])
         .rpc({ commitment: 'confirmed' });
 
-      // 3. Save Metadata via server-side API route
-      //    The API route validates, sanitizes, and inserts using the admin client.
+      // 3. Sign message for authentication
+      if (!signMessage) {
+        throw new Error('Wallet does not support message signing');
+      }
+      const message = `Create business: ${businessPda.toBase58()}`;
+      const messageBytes = new TextEncoder().encode(message);
+      const signatureBytes = await signMessage(messageBytes);
+      const signature = bs58.encode(signatureBytes);
+
+      // 4. Save Metadata via server-side API route
+      //    The API route validates, sanitizes, verifies signature and inserts using the admin client.
       //    This keeps the service_role key off the frontend and ensures
       //    all inputs are parameterized on the server side.
       const response = await fetch('/api/businesses', {
@@ -123,6 +133,8 @@ export default function CreateBusinessPage() {
         body: JSON.stringify({
           id: businessPda.toBase58(),
           owner: publicKey.toBase58(),
+          signature,
+          message,
           name,
           description,
           category,
@@ -142,8 +154,8 @@ export default function CreateBusinessPage() {
       // Reset form
       setFundingGoal(''); setEquityPercentage(''); setTotalTokens('');
       setName(''); setDescription(''); setCategory(''); setWebsiteUrl(''); setImageFile(null);
-    } catch (e: any) {
-      showToast('error', e.message || 'Transaction failed');
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Transaction failed');
     } finally {
       setSubmitting(false);
     }
@@ -153,7 +165,14 @@ export default function CreateBusinessPage() {
   const previewGoal = parseFloat(fundingGoal) || 0;
   const previewEquity = parseInt(equityPercentage) || 0;
   const previewTokens = parseFloat(totalTokens) || 0;
-  const previewImageUrl = imageFile ? URL.createObjectURL(imageFile) : '';
+  
+  const previewImageUrl = useMemo(() => {
+    return imageFile ? URL.createObjectURL(imageFile) : '';
+  }, [imageFile]);
+
+  useEffect(() => {
+    return () => { if (previewImageUrl) URL.revokeObjectURL(previewImageUrl); };
+  }, [previewImageUrl]);
 
   return (
     <div className="container fade-in">

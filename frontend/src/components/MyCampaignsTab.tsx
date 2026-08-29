@@ -5,10 +5,9 @@ import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { BN } from '@coral-xyz/anchor';
 import { BusinessData } from '../hooks/useBusinesses';
+import { truncateAddress } from '../lib/format';
+import type { DipProgram, AnchorWallet } from '../types/program';
 
-function truncateAddress(addr: string): string {
-  return `${addr.slice(0, 6)}...${addr.slice(-6)}`;
-}
 
 export function MyCampaignsTab({
   businesses,
@@ -20,8 +19,8 @@ export function MyCampaignsTab({
 }: {
   businesses: BusinessData[];
   loading: boolean;
-  program: any;
-  wallet: any;
+  program: DipProgram;
+  wallet: AnchorWallet;
   refresh: () => void;
   showToast: (type: string, message: string) => void;
 }) {
@@ -70,8 +69,8 @@ export function MyCampaignsTab({
       showToast('success', `Withdrew ${amount} SOL successfully!`);
       setWithdrawAmounts((prev) => ({ ...prev, [biz.publicKey]: '' }));
       refresh();
-    } catch (e: any) {
-      showToast('error', e.message || 'Withdrawal failed');
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Withdrawal failed');
     } finally {
       setActionLoading(null);
     }
@@ -110,8 +109,8 @@ export function MyCampaignsTab({
       showToast('success', `Distributed ${amount} SOL dividend!`);
       setDividendAmounts((prev) => ({ ...prev, [biz.publicKey]: '' }));
       setDividendInvestors((prev) => ({ ...prev, [biz.publicKey]: '' }));
-    } catch (e: any) {
-      showToast('error', e.message || 'Dividend distribution failed');
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Dividend distribution failed');
     } finally {
       setActionLoading(null);
     }
@@ -133,8 +132,8 @@ export function MyCampaignsTab({
 
       showToast('success', 'Invoice closed!');
       refresh();
-    } catch (e: any) {
-      showToast('error', e.message || 'Close failed');
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Close failed');
     } finally {
       setActionLoading(null);
     }
