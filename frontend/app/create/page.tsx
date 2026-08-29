@@ -6,6 +6,7 @@ import { useProgram } from '../../src/hooks/useProgram';
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL, Keypair } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { BN } from '@coral-xyz/anchor';
+// @ts-ignore
 import bs58 from 'bs58';
 
 const PROGRAM_ID = new PublicKey('5gEZHMQfMSKofq89gBkWPzwx7g1vy3d1pn8RJjRSkN4Z');

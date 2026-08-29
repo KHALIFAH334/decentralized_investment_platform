@@ -190,7 +190,7 @@ export default function BusinessDetailPage() {
           <InvestmentSidebar
             business={business}
             program={program}
-            wallet={wallet}
+            wallet={wallet!}
             onSuccess={fetchBusiness}
             showToast={showToast}
           />

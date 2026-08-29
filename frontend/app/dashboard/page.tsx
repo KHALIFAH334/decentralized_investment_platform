@@ -55,11 +55,11 @@ export default function DashboardPage() {
       </div>
 
       {activeTab === 'businesses' && (
-        <MyCampaignsTab
-          businesses={myBusinesses}
+        <MyCampaignsTab 
+          businesses={businesses.filter((b) => b.owner === wallet?.publicKey.toBase58())} 
           loading={loading}
           program={program}
-          wallet={wallet}
+          wallet={wallet!}
           refresh={refresh}
           showToast={showToast}
         />

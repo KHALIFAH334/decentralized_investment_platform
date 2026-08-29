@@ -11,7 +11,11 @@ const config = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@upstash/redis$': '<rootDir>/tests/__mocks__/upstash-redis.ts',
   },
+  transformIgnorePatterns: [
+    '/node_modules/(?!(@upstash|uncrypto)/)',
+  ],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

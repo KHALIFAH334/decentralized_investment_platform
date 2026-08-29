@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useBusinesses } from '../src/hooks/useBusinesses';
-import { LAMPORTS_PER_SOL } from '../src/lib/format';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 export default function LandingPage() {
   const [sliderValue, setSliderValue] = useState(50);

@@ -9,43 +9,43 @@ describe('rateLimit.ts', () => {
     jest.useRealTimers();
   });
 
-  it('allows requests within the limit', () => {
+  it('allows requests within the limit', async () => {
     const ip = '1.2.3.4';
     const config = { maxRequests: 2, windowMs: 1000 };
 
-    const res1 = checkRateLimit(ip, config);
+    const res1 = await checkRateLimit(ip, config);
     expect(res1.allowed).toBe(true);
     expect(res1.remaining).toBe(1);
 
-    const res2 = checkRateLimit(ip, config);
+    const res2 = await checkRateLimit(ip, config);
     expect(res2.allowed).toBe(true);
     expect(res2.remaining).toBe(0);
   });
 
-  it('blocks requests exceeding the limit', () => {
+  it('blocks requests exceeding the limit', async () => {
     const ip = '5.6.7.8';
     const config = { maxRequests: 1, windowMs: 1000 };
 
-    const res1 = checkRateLimit(ip, config);
+    const res1 = await checkRateLimit(ip, config);
     expect(res1.allowed).toBe(true);
 
-    const res2 = checkRateLimit(ip, config);
+    const res2 = await checkRateLimit(ip, config);
     expect(res2.allowed).toBe(false);
     expect(res2.remaining).toBe(0);
     expect(res2.resetMs).toBeGreaterThan(0);
   });
 
-  it('resets the limit after the window expires', () => {
+  it('resets the limit after the window expires', async () => {
     const ip = '9.10.11.12';
     const config = { maxRequests: 1, windowMs: 1000 };
 
-    checkRateLimit(ip, config);
-    expect(checkRateLimit(ip, config).allowed).toBe(false);
+    await checkRateLimit(ip, config);
+    expect((await checkRateLimit(ip, config)).allowed).toBe(false);
 
     // Fast-forward time past the window
     jest.advanceTimersByTime(1001);
 
-    const res = checkRateLimit(ip, config);
+    const res = await checkRateLimit(ip, config);
     expect(res.allowed).toBe(true);
   });
 });
