@@ -12,9 +12,11 @@ const config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@upstash/redis$': '<rootDir>/tests/__mocks__/upstash-redis.ts',
+    '^uuid$': '<rootDir>/tests/__mocks__/empty.js',
+    '^jayson(.*)$': '<rootDir>/tests/__mocks__/empty.js',
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!(@upstash|uncrypto)/)',
+    '/node_modules/(?!(@upstash|uncrypto|uuid|jayson)/)',
   ],
 };
 

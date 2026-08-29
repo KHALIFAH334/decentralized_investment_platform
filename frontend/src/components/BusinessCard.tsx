@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { BusinessData } from '../../src/hooks/useBusinesses';
 import { BusinessMetadata } from '../../src/hooks/useBusinessMetadata';
 import { truncateAddress } from '../lib/format';
+import { ProgressBar } from './ProgressBar';
 
 interface BusinessCardProps {
   business: BusinessData;
@@ -51,15 +52,7 @@ export default function BusinessCard({ business, metadata }: BusinessCardProps) 
             </p>
           )}
 
-        <div style={{ marginBottom: 'var(--space-md)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Progress</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{progress.toFixed(1)}%</span>
-          </div>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-          </div>
-        </div>
+        <ProgressBar progress={progress} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
           <div>

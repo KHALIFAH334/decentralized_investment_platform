@@ -7,6 +7,7 @@ import { BN } from '@coral-xyz/anchor';
 import { BusinessData } from '../hooks/useBusinesses';
 import { truncateAddress } from '../lib/format';
 import type { DipProgram, AnchorWallet } from '../types/program';
+import { useCampaignActions } from '../hooks/useCampaignActions';
 
 
 export function MyCampaignsTab({
@@ -27,7 +28,13 @@ export function MyCampaignsTab({
   const [withdrawAmounts, setWithdrawAmounts] = useState<Record<string, string>>({});
   const [dividendAmounts, setDividendAmounts] = useState<Record<string, string>>({});
   const [dividendInvestors, setDividendInvestors] = useState<Record<string, string>>({});
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const { withdraw, distributeDividend, closeBusiness, actionLoading } = useCampaignActions(
+    program,
+    wallet,
+    refresh,
+    showToast
+  );
 
   if (loading) {
     return (
@@ -49,94 +56,25 @@ export function MyCampaignsTab({
   }
 
   const handleWithdraw = async (biz: BusinessData) => {
-    if (!program || !wallet) return;
-    const amount = parseFloat(withdrawAmounts[biz.publicKey] || '');
-    if (isNaN(amount) || amount <= 0) { showToast('error', 'Enter a valid amount'); return; }
-
-    try {
-      setActionLoading(`withdraw-${biz.publicKey}`);
-      const businessPubkey = new PublicKey(biz.publicKey);
-
-      await program.methods
-        .withdrawFunds(new BN(amount * LAMPORTS_PER_SOL))
-        .accounts({
-          owner: wallet.publicKey,
-          businessState: businessPubkey,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc({ commitment: 'confirmed' });
-
-      showToast('success', `Withdrew ${amount} SOL successfully!`);
+    const amountStr = withdrawAmounts[biz.publicKey] || '';
+    const success = await withdraw(biz, amountStr);
+    if (success) {
       setWithdrawAmounts((prev) => ({ ...prev, [biz.publicKey]: '' }));
-      refresh();
-    } catch (e: unknown) {
-      showToast('error', e instanceof Error ? e.message : 'Withdrawal failed');
-    } finally {
-      setActionLoading(null);
     }
   };
 
   const handleDividend = async (biz: BusinessData) => {
-    if (!program || !wallet) return;
-    const amount = parseFloat(dividendAmounts[biz.publicKey] || '');
+    const amountStr = dividendAmounts[biz.publicKey] || '';
     const investorAddr = dividendInvestors[biz.publicKey] || '';
-    if (isNaN(amount) || amount <= 0) { showToast('error', 'Enter a valid dividend amount'); return; }
-    if (!investorAddr) { showToast('error', 'Enter investor address'); return; }
-
-    try {
-      setActionLoading(`dividend-${biz.publicKey}`);
-      const businessPubkey = new PublicKey(biz.publicKey);
-      const investorPubkey = new PublicKey(investorAddr);
-      const mintPubkey = new PublicKey(biz.mintKey);
-
-      const investorAta = getAssociatedTokenAddressSync(
-        mintPubkey, investorPubkey, false, TOKEN_2022_PROGRAM_ID
-      );
-
-      await program.methods
-        .distributeDividends(new BN(amount * LAMPORTS_PER_SOL))
-        .accounts({
-          owner: wallet.publicKey,
-          businessState: businessPubkey,
-          equityMint: mintPubkey,
-          investor: investorPubkey,
-          investorTokenAccount: investorAta,
-          tokenProgram: TOKEN_2022_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc({ commitment: 'confirmed' });
-
-      showToast('success', `Distributed ${amount} SOL dividend!`);
+    const success = await distributeDividend(biz, amountStr, investorAddr);
+    if (success) {
       setDividendAmounts((prev) => ({ ...prev, [biz.publicKey]: '' }));
       setDividendInvestors((prev) => ({ ...prev, [biz.publicKey]: '' }));
-    } catch (e: unknown) {
-      showToast('error', e instanceof Error ? e.message : 'Dividend distribution failed');
-    } finally {
-      setActionLoading(null);
     }
   };
 
   const handleClose = async (biz: BusinessData) => {
-    if (!program || !wallet) return;
-    try {
-      setActionLoading(`close-${biz.publicKey}`);
-      const businessPubkey = new PublicKey(biz.publicKey);
-
-      await program.methods
-        .closeBusiness()
-        .accounts({
-          owner: wallet.publicKey,
-          businessState: businessPubkey,
-        })
-        .rpc({ commitment: 'confirmed' });
-
-      showToast('success', 'Invoice closed!');
-      refresh();
-    } catch (e: unknown) {
-      showToast('error', e instanceof Error ? e.message : 'Close failed');
-    } finally {
-      setActionLoading(null);
-    }
+    await closeBusiness(biz);
   };
 
   return (
