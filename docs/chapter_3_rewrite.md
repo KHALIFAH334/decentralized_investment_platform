@@ -181,7 +181,7 @@ The second class is `BusinessMetadata`. This off-chain data structure is stored 
 
 The third class is `EquityToken`. This represents the Token-2022 mint created during campaign initialization. It stores the `mint_address` (Pubkey), `supply` (u64), `decimals` (u8, set to 6), and two extensions: `TransferFeeConfig` (fee rate of 0.3%) and `PermanentDelegate` (delegate set to the PDA).
 
-On the frontend, four React hook classes handle data fetching. The `useProgram` hook connects the wallet to the Solana network and returns the Anchor program object. The `useBusinesses` hook fetches all BusinessState accounts from the blockchain. The `useBusinessMetadata` hook fetches descriptive metadata from Supabase. The `useTokenPortfolio` hook scans the Investor's wallet for equity token holdings.
+On the frontend, five React hook classes handle data fetching and transaction state. The `useProgram` hook connects the wallet to the Solana network and returns the Anchor program object. The `useBusinesses` hook fetches all BusinessState accounts from the blockchain. The `useBusinessMetadata` hook fetches descriptive metadata from Supabase. The `useTokenPortfolio` hook scans the Investor's wallet for equity token holdings. The `useCampaignActions` hook acts as a dedicated transaction controller, abstracting the complex Cross-Program Invocations (CPIs) required for withdrawing funds, distributing dividends, and closing campaigns away from the UI components.
 
 Three React component classes handle the user interface. The `InvestmentSidebar` component provides the investment form with a live token preview and the Invest Now button. The `MyCampaignsTab` component displays the owner's campaigns and provides the withdraw, dividend, and close actions. The `MyInvestmentsTab` component displays the Investor's token holdings alongside expected versus actual yield performance.
 
@@ -222,6 +222,8 @@ The non-functional requirements for the proposed system define the quality const
 5. **Usability:** The frontend must abstract the complexity of blockchain interactions behind a standard web application experience. Users must be able to browse campaigns, invest SOL, receive equity tokens, and track portfolio performance without requiring knowledge of smart contract programming, RPC endpoints, or token account derivation. The interface must be responsive across desktop and mobile screen sizes.
 
 6. **Cost Efficiency:** The total transaction fee for any single operation must not exceed 0.001 SOL. The combined cost of creating a campaign, investing, withdrawing funds, distributing dividends, and processing a refund must remain significantly below the 5 to 15 percent fees charged by traditional factoring institutions and centralized crowdfunding platforms.
+
+7. **Portability and Deployment:** The frontend architecture must be fully containerized. Utilizing a multi-stage Docker build process and the Next.js standalone output trace, the application must compile into a minimal-footprint container image, ensuring environment parity across local testing and remote cloud deployments.
 
 
 ### 3.7.1 SMART CONTRACT PROFILING AND RESOURCE CONSTRAINTS

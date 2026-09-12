@@ -133,7 +133,7 @@ management. The smart contracts are written in Rust utilizing the Anchor framewo
 
 ---
 
-Deployment is restricted exclusively to the Solana Devnet. Due to testing constraints
+Deployment is restricted exclusively to the Solana Devnet. The system employs automated unit testing (Jest) to validate React state transitions alongside Solana runtime profiling. Due to testing constraints
 encountered during system development, the transactional proofs of concept utilize native SOL
 rather than stablecoins (e.g., USDC). While the project meticulously handles the technical
 execution of equity tokenization and secure escrow management, it explicitly excludes the legal
@@ -143,10 +143,7 @@ Limitations of the Study
  User Onboarding Friction: The inherent complexity of managing Web3 wallets (such
 as Phantom) presents a steep learning curve for local business owners unfamiliar with
 cryptographic technology, potentially slowing initial adoption rates.
- Dependence on Solana Devnet: The study relies heavily on the Solana Devnet, which
-introduces infrastructural vulnerabilities. Network instability or periodic state resets could
-temporarily disrupt the testing environment and delay the verification of the smart
-contract execution pipeline.
+ Dependence on Solana Devnet: The study relies heavily on the Solana Devnet, which introduces infrastructural vulnerabilities. While the frontend architecture actively mitigates node instability by implementing a custom RPC load-balancing and fallback array within the WalletProvider, underlying network resets remain outside the application's control and could temporarily disrupt the testing environment.
  Asset Integration Constraints: The operational necessity to pivot to native SOL due to
 developmental testing constraints limits the ability to test real-world stablecoin volatility
 protections within this current research phase.

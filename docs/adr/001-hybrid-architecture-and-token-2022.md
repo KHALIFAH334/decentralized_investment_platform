@@ -36,9 +36,8 @@ We chose **Option 2**. We use Solana for the source of truth regarding funds (in
 
 ### 2. Token-2022 Standard
 We chose **Option 2**.
-**Rationale**: 
-- **Regulatory Safety**: We utilize the `NonTransferable` extension. Investors receive equity tokens to prove their share and receive dividends, but they *cannot* dump these tokens on a decentralized exchange. This maps closely to real-world private equity, which is highly illiquid. 
-- **Future Proofing**: Token-2022 allows us to add `TransferFeeConfig` later if the platform wants to take a royalty on secondary sales (if they are eventually enabled).
+- **Protocol Monetization**: We utilize the `TransferFeeConfig` extension. Investors can freely trade their equity tokens, but every secondary transfer incurs a 0.3% protocol fee that accumulates and can be harvested by the platform or business owner.
+- **Regulatory Compliance**: We utilize the `PermanentDelegate` extension. This ensures the protocol (via the PDA) retains the ultimate authority to forcibly transfer or burn tokens if required for compliance reasons, such as refunding a failed campaign or responding to a regulatory order.
 
 ## Consequences
 - **Positive**: Platform is extremely cheap to deploy and interact with. The UI is highly responsive. We are safe from immediate regulatory scrutiny regarding unlicensed DEX trading.

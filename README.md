@@ -25,7 +25,7 @@ graph TD
 |---|---|
 | **Smart Contract** | Solana, Anchor (v0.30.1), Rust |
 | **Token Standard** | Token-2022 (Transfer Fees) |
-| **Frontend** | Next.js 14, React 19, TypeScript |
+| **Frontend** | Next.js 16, React 19, TypeScript |
 | **Web3 Integration** | @solana/web3.js, @coral-xyz/anchor, Wallet Adapter |
 | **Database/API** | Supabase (PostgreSQL), Upstash Redis (Rate Limiting) |
 | **Testing** | Jest (Frontend), Mocha/Chai (Smart Contract) |
@@ -43,7 +43,7 @@ graph TD
 
 ```bash
 # Install dependencies and build the Anchor program
-yarn install
+npm install
 anchor build
 
 # Deploy to localnet or devnet
