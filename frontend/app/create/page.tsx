@@ -150,7 +150,7 @@ export default function CreateBusinessPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('API error:', errorData);
+        console.error('API error:', JSON.stringify(errorData));
         showToast('warning', `Campaign created on-chain (TX: ${tx.slice(0, 10)}...) but metadata save failed: ${errorData.error}`);
       } else {
         showToast('success', `Campaign submitted successfully!`);

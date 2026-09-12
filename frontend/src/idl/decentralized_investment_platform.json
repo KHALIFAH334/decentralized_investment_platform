@@ -283,6 +283,10 @@
         {
           "name": "total_equity_tokens",
           "type": "u64"
+        },
+        {
+          "name": "funding_deadline",
+          "type": "i64"
         }
       ]
     },
@@ -790,6 +794,13 @@
               "The equity token mint address"
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "funding_deadline",
+            "docs": [
+              "The Unix timestamp when the campaign expires"
+            ],
+            "type": "i64"
           }
         ]
       }

@@ -19,9 +19,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+    const onError = (error: any) => {
+      // Suppress WalletConnectionError "User rejected the request" popping up a red screen in dev
+      console.warn('Wallet connection error:', error.message);
+    };
+
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <SolanaWalletProvider wallets={wallets} autoConnect>
+      <SolanaWalletProvider wallets={wallets} autoConnect onError={onError}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </SolanaWalletProvider>
     </ConnectionProvider>

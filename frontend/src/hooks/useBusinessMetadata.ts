@@ -31,7 +31,7 @@ export function useAllBusinessMetadata() {
       }
       setMetadata(map);
     } catch (err: unknown) {
-      console.error('Error fetching metadata:', err instanceof Error ? err.message : String(err));
+      console.error('Error fetching metadata:', err instanceof Error ? err.message : JSON.stringify(err));
     } finally {
       setLoading(false);
     }

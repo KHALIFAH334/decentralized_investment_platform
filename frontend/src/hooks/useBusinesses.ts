@@ -28,7 +28,7 @@ export function useBusinesses() {
     try {
       setLoading(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const accounts = await (program.account as any).businessState.all();
+      const accounts = await (program.account as any).businessState.all([{ dataSize: 116 }]);
       const data: BusinessData[] = accounts.map((acc: { publicKey: { toBase58(): string }; account: Record<string, unknown> }) => ({
         publicKey: acc.publicKey.toBase58(),
         owner: (acc.account.owner as { toBase58(): string }).toBase58(),
