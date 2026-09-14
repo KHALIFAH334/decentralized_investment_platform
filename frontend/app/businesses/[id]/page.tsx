@@ -7,6 +7,7 @@ import { PublicKey } from '@solana/web3.js';
 import Link from 'next/link';
 import { useBusinessMetadata } from '../../../src/hooks/useBusinessMetadata';
 import { InvestmentSidebar } from '../../../src/components/InvestmentSidebar';
+import { OwnerSidebar } from '../../../src/components/OwnerSidebar';
 
 interface BusinessDetail {
   publicKey: string;
@@ -189,7 +190,14 @@ export default function BusinessDetailPage() {
         <div className="detail-sidebar">
           <InvestmentSidebar
             business={business}
-            program={program}
+            program={program!}
+            wallet={wallet!}
+            onSuccess={fetchBusiness}
+            showToast={showToast}
+          />
+          <OwnerSidebar
+            business={business}
+            program={program!}
             wallet={wallet!}
             onSuccess={fetchBusiness}
             showToast={showToast}
