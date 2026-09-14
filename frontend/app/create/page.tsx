@@ -102,13 +102,9 @@ export default function CreateBusinessPage() {
 
       const fundingGoalBN = new BN(goal * LAMPORTS_PER_SOL);
       const totalTokensBN = new BN(tokens * 1e6); // 6 decimals
-      
-      // Calculate a 30-day deadline in Unix seconds
-      const deadlineSeconds = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
-      const deadlineBN = new BN(deadlineSeconds);
 
       const tx = await program.methods
-        .initializeBusiness(idBN, fundingGoalBN, equity, totalTokensBN, deadlineBN)
+        .initializeBusiness(idBN, fundingGoalBN, equity, totalTokensBN)
         .accounts({
           owner: publicKey,
           businessState: businessPda,

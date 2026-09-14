@@ -73,7 +73,7 @@ describe("Decentralized Investment Platform", () => {
   it("1. Initializes a business with Token-2022 equity mint", async () => {
     await program.methods
       .initializeBusiness(businessId, FUNDING_GOAL, EQUITY_PERCENTAGE, TOTAL_EQUITY_TOKENS, fundingDeadline)
-      .accounts({
+      .accountsPartial({
         owner: owner.publicKey,
         businessState: businessStatePda,
         equityMint: equityMint.publicKey,
@@ -98,7 +98,7 @@ describe("Decentralized Investment Platform", () => {
 
     await program.methods
       .invest(investAmount)
-      .accounts({
+      .accountsPartial({
         investor: investor.publicKey,
         businessState: businessStatePda,
         equityMint: equityMint.publicKey,
@@ -123,7 +123,7 @@ describe("Decentralized Investment Platform", () => {
 
     await program.methods
       .invest(investAmount)
-      .accounts({
+      .accountsPartial({
         investor: investor.publicKey,
         businessState: businessStatePda,
         equityMint: equityMint.publicKey,
@@ -146,7 +146,7 @@ describe("Decentralized Investment Platform", () => {
 
     await program.methods
       .withdrawFunds(withdrawAmount)
-      .accounts({
+      .accountsPartial({
         owner: owner.publicKey,
         businessState: businessStatePda,
         systemProgram: SystemProgram.programId,
@@ -165,7 +165,7 @@ describe("Decentralized Investment Platform", () => {
     try {
       await program.methods
         .withdrawFunds(tooMuch)
-        .accounts({
+        .accountsPartial({
           owner: owner.publicKey,
           businessState: businessStatePda,
           systemProgram: SystemProgram.programId,
@@ -185,7 +185,7 @@ describe("Decentralized Investment Platform", () => {
     try {
       await program.methods
         .refundInvestment()
-        .accounts({
+        .accountsPartial({
           investor: investor.publicKey,
           businessState: businessStatePda,
           equityMint: equityMint.publicKey,
@@ -204,7 +204,7 @@ describe("Decentralized Investment Platform", () => {
     // First close
     await program.methods
       .closeBusiness()
-      .accounts({ owner: owner.publicKey, businessState: businessStatePda })
+      .accountsPartial({ owner: owner.publicKey, businessState: businessStatePda })
       .signers([owner])
       .rpc();
     
@@ -212,7 +212,7 @@ describe("Decentralized Investment Platform", () => {
     try {
       await program.methods
         .closeBusiness()
-        .accounts({ owner: owner.publicKey, businessState: businessStatePda })
+        .accountsPartial({ owner: owner.publicKey, businessState: businessStatePda })
         .signers([owner])
         .rpc();
       expect.fail("Should have thrown error");
@@ -253,7 +253,7 @@ describe("Decentralized Investment Platform", () => {
 
       await program.methods
         .initializeBusiness(shortId, FUNDING_GOAL, EQUITY_PERCENTAGE, TOTAL_EQUITY_TOKENS, shortDeadline)
-        .accounts({
+        .accountsPartial({
           owner: shortOwner.publicKey,
           businessState: shortPda,
           equityMint: shortMint.publicKey,
@@ -268,7 +268,7 @@ describe("Decentralized Investment Platform", () => {
       try {
         await program.methods
           .autoClose()
-          .accounts({ businessState: shortPda })
+          .accountsPartial({ businessState: shortPda })
           // anyone can sign, we use investor
           .rpc();
         expect.fail("Should have thrown error");
@@ -283,7 +283,7 @@ describe("Decentralized Investment Platform", () => {
       );
       await program.methods
         .invest(new anchor.BN(1 * LAMPORTS_PER_SOL))
-        .accounts({
+        .accountsPartial({
           investor: shortInvestor.publicKey,
           businessState: shortPda,
           equityMint: shortMint.publicKey,
@@ -314,7 +314,7 @@ describe("Decentralized Investment Platform", () => {
       try {
         await program.methods
           .invest(new anchor.BN(1 * LAMPORTS_PER_SOL))
-          .accounts({
+          .accountsPartial({
             investor: shortInvestor.publicKey,
             businessState: shortPda,
             equityMint: shortMint.publicKey,
@@ -334,7 +334,7 @@ describe("Decentralized Investment Platform", () => {
     it("Auto-close succeeds AFTER deadline by random caller", async () => {
       await program.methods
         .autoClose()
-        .accounts({ businessState: shortPda })
+        .accountsPartial({ businessState: shortPda })
         .rpc(); // Caller is provider wallet, not owner
         
       const state = await program.account.businessState.fetch(shortPda);
@@ -349,7 +349,7 @@ describe("Decentralized Investment Platform", () => {
 
       await program.methods
         .refundInvestment()
-        .accounts({
+        .accountsPartial({
           investor: shortInvestor.publicKey,
           businessState: shortPda,
           equityMint: shortMint.publicKey,
@@ -397,7 +397,7 @@ describe("Decentralized Investment Platform", () => {
     it("Initialize & invest for fee testing", async () => {
       await program.methods
         .initializeBusiness(id2, FUNDING_GOAL, EQUITY_PERCENTAGE, TOTAL_EQUITY_TOKENS, deadline2)
-        .accounts({
+        .accountsPartial({
           owner: owner2.publicKey,
           businessState: pda2,
           equityMint: mint2.publicKey,
@@ -413,7 +413,7 @@ describe("Decentralized Investment Platform", () => {
 
       await program.methods
         .invest(FUNDING_GOAL)
-        .accounts({
+        .accountsPartial({
           investor: investor2.publicKey,
           businessState: pda2,
           equityMint: mint2.publicKey,
@@ -449,7 +449,7 @@ describe("Decentralized Investment Platform", () => {
 
       await program.methods
         .harvestFees()
-        .accounts({
+        .accountsPartial({
           owner: owner2.publicKey,
           businessState: pda2,
           equityMint: mint2.publicKey,
