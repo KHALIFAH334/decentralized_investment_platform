@@ -4,11 +4,20 @@ import React from 'react';
 import { useTokenPortfolio } from '../hooks/useTokenPortfolio';
 import { useBusinesses } from '../hooks/useBusinesses';
 import { useAllBusinessMetadata } from '../hooks/useBusinessMetadata';
+import { useCampaignActions } from '../hooks/useCampaignActions';
+import { useAnchorWallet } from '@solana/wallet-adapter-react';
+import { useProgram } from '../hooks/useProgram';
+import { useToast } from './ToastProvider';
 
 export function MyInvestmentsTab() {
   const { holdings, loading: tokenLoading } = useTokenPortfolio();
-  const { businesses, loading: bizLoading } = useBusinesses();
+  const { businesses, loading: bizLoading, refresh } = useBusinesses();
   const { metadata, loading: metaLoading } = useAllBusinessMetadata();
+  const wallet = useAnchorWallet();
+  const program = useProgram();
+  const { showToast } = useToast();
+  
+  const { autoClose, refundInvestment, actionLoading } = useCampaignActions(program, wallet || null, refresh, showToast);
 
   if (tokenLoading || bizLoading || metaLoading) {
     return (
@@ -63,12 +72,34 @@ export function MyInvestmentsTab() {
                 <span className="detail-stat-label">Yield Stake</span>
                 <span className="detail-stat-value">{ownershipPercentage}%</span>
               </div>
-              <div className="detail-stat" style={{ borderBottom: 'none', fontSize: '0.85rem' }}>
+              <div className="detail-stat" style={{ borderBottom: 'none', fontSize: '0.85rem', marginBottom: 'var(--space-md)' }}>
                 <span className="detail-stat-label">Performance</span>
                 <span className="detail-stat-value" style={{ color: biz.isFunded ? 'var(--success)' : 'inherit' }}>
                   Expected: {biz.equityPercentage}% | Actual: {biz.isFunded ? biz.equityPercentage : 0}%
                 </span>
               </div>
+
+              {!biz.isFunded && !biz.isClosed && (Date.now() / 1000) >= biz.fundingDeadline && (
+                <button 
+                  className="btn-secondary" 
+                  style={{ width: '100%', marginBottom: '8px', borderColor: 'var(--warning)', color: 'var(--warning)' }}
+                  onClick={() => autoClose(biz)}
+                  disabled={actionLoading === `autoclose-${biz.publicKey}`}
+                >
+                  {actionLoading === `autoclose-${biz.publicKey}` ? 'Triggering...' : 'Trigger Auto-Close'}
+                </button>
+              )}
+
+              {!biz.isFunded && biz.isClosed && holding.balance > 0 && (
+                <button 
+                  className="btn-primary" 
+                  style={{ width: '100%', background: 'var(--error)' }}
+                  onClick={() => refundInvestment(biz)}
+                  disabled={actionLoading === `refund-${biz.publicKey}`}
+                >
+                  {actionLoading === `refund-${biz.publicKey}` ? 'Refunding...' : 'Claim Refund'}
+                </button>
+              )}
             </div>
           </div>
         );

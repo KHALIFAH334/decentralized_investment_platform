@@ -106,5 +106,62 @@ export function useCampaignActions(
     }
   };
 
-  return { withdraw, distributeDividend, closeBusiness, actionLoading };
+  const autoClose = async (biz: BusinessData) => {
+    if (!program || !wallet) return;
+    try {
+      setActionLoading(`autoclose-${biz.publicKey}`);
+      const businessPubkey = new PublicKey(biz.publicKey);
+
+      await program.methods
+        .autoClose()
+        .accounts({
+          businessState: businessPubkey,
+        })
+        .rpc({ commitment: 'confirmed' });
+
+      showToast('success', 'Campaign auto-closed! Refunds are now enabled.');
+      refresh();
+      return true;
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Auto-close failed');
+      return false;
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const refundInvestment = async (biz: BusinessData) => {
+    if (!program || !wallet) return;
+    try {
+      setActionLoading(`refund-${biz.publicKey}`);
+      const businessPubkey = new PublicKey(biz.publicKey);
+      const mintPubkey = new PublicKey(biz.mintKey);
+      
+      const investorAta = getAssociatedTokenAddressSync(
+        mintPubkey, wallet.publicKey, false, TOKEN_2022_PROGRAM_ID
+      );
+
+      await program.methods
+        .refundInvestment()
+        .accounts({
+          investor: wallet.publicKey,
+          businessState: businessPubkey,
+          equityMint: mintPubkey,
+          investorTokenAccount: investorAta,
+          tokenProgram: TOKEN_2022_PROGRAM_ID,
+        })
+        .rpc({ commitment: 'confirmed' });
+
+      showToast('success', 'Refund successful! Tokens burned and SOL returned.');
+      refresh();
+      return true;
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Refund failed');
+      return false;
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  return { withdraw, distributeDividend, closeBusiness, autoClose, refundInvestment, actionLoading };
 }
